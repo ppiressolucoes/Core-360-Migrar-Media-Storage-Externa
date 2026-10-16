@@ -1,0 +1,775 @@
+{
+  "name": "PEL | Migração Featured IMG | PAI",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "publish"
+            },
+            {
+              "name": "orderby",
+              "value": "date"
+            },
+            {
+              "name": "order",
+              "value": "asc"
+            },
+            {
+              "name": "_fields",
+              "value": "id,date,modified,slug,link,title,featured_media"
+            },
+            {
+              "name": "per_page",
+              "value": "={{ $json.per_page }}"
+            },
+            {
+              "name": "page",
+              "value": "={{ $json.pagina_atual }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -320,
+        -448
+      ],
+      "id": "8d3f73d9-c78b-4f6f-946c-e02151103ee6",
+      "name": "Busca Posts"
+    },
+    {
+      "parameters": {
+        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "_fields",
+              "value": "id,date,slug,source_url,mime_type,media_details"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -528,
+        -48
+      ],
+      "id": "be9b7e87-a987-4344-bec1-17b6d542d10b",
+      "name": "GET | Featured Media"
+    },
+    {
+      "parameters": {
+        "jsCode": "const medias = $input.all();\n\n// IMPORTANTE:\n// coloque abaixo o nome EXATO do node anterior\n// que contém migration_id + post_id + wp_media_id\nconst posts = $('Recupera | Contexto Post').all();\n\nif (medias.length !== posts.length) {\n  throw new Error(\n    `Quantidade divergente: ${medias.length} mídias e ${posts.length} posts`\n  );\n}\n\nreturn medias.map((item, index) => {\n\n  const media = item.json;\n  const post = posts[index].json;\n\n  // Proteção adicional contra associação incorreta\n  if (Number(media.id) !== Number(post.wp_media_id)) {\n    throw new Error(\n      `Mídia incompatível: esperado ${post.wp_media_id}, recebido ${media.id}`\n    );\n  }\n\n  return {\n    json: {\n      // CONTROLE\n      migration_id: post.migration_id,\n      ordem: post.ordem,\n      status_migracao: post.status_migracao,\n\n      // POST\n      post_id: post.post_id,\n      post_date: post.post_date,\n      post_modified: post.post_modified,\n      post_slug: post.post_slug,\n      post_link: post.post_link,\n\n      // FEATURED MEDIA\n      wp_media_id: media.id,\n      media_date: media.date,\n      media_slug: media.slug,\n      mime_type: media.mime_type,\n\n      // ARQUIVO ORIGINAL\n      original_url: media.source_url,\n      original_file: media.media_details?.file ?? null,\n      original_width: media.media_details?.width ?? null,\n      original_height: media.media_details?.height ?? null,\n      original_filesize: media.media_details?.filesize ?? null\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -64
+      ],
+      "id": "ba55830e-7766-4dd2-9a6c-be040e2ac458",
+      "name": "Normaliza | Featured Media"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CALL SP_WP_reserva_migracao_featured(\n  '{{ JSON.stringify($json.candidatos).replace(/'/g, \"''\") }}',\n  {{ $json.limite }}\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        96,
+        -448
+      ],
+      "id": "3e6425ab-fd9c-4bd8-acd7-31c3163a9bd7",
+      "name": "SP | Reserva Lote"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst reservados = [];\n\n// Contexto da página que originou esta reserva\nconst contextoPagina = $('Monta | Candidatos [5]').first().json;\n\nfunction procurar(value) {\n  if (Array.isArray(value)) {\n    for (const v of value) procurar(v);\n    return;\n  }\n\n  if (\n    value &&\n    typeof value === 'object' &&\n    value.post_id !== undefined &&\n    value.wp_media_id !== undefined &&\n    value.migration_id !== undefined\n  ) {\n    reservados.push(value);\n  }\n}\n\nfor (const item of items) {\n  procurar(item.json);\n}\n\n/*\n  Nenhuma migração elegível.\n  Não é erro: encerra o ciclo normalmente.\n*/\nif (reservados.length === 0) {\n  return [{\n    json: {\n      tem_reserva: false,\n      total_reservado: 0,\n      etapa: 'SEM_CANDIDATOS_ELEGIVEIS',\n\n      // Contexto da página permanece disponível\n      pagina_processada: Number(contextoPagina.pagina_processada),\n      per_page: Number(contextoPagina.per_page),\n      ultimo_post_pagina: Number(contextoPagina.ultimo_post_pagina),\n      total_candidatos: Number(contextoPagina.total_candidatos)\n    }\n  }];\n}\n\nreturn reservados.map(row => ({\n  json: {\n    tem_reserva: true,\n    total_reservado: reservados.length,\n\n    migration_id: Number(row.migration_id),\n    ordem: Number(row.ordem),\n    post_id: Number(row.post_id),\n    wp_media_id: Number(row.wp_media_id),\n\n    status: row.status,\n    created_at: row.created_at ?? null,\n    updated_at: row.updated_at ?? null,\n\n    // Contexto da página\n    pagina_processada: Number(contextoPagina.pagina_processada),\n    per_page: Number(contextoPagina.per_page),\n    ultimo_post_pagina: Number(contextoPagina.ultimo_post_pagina),\n    total_candidatos: Number(contextoPagina.total_candidatos)\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -448
+      ],
+      "id": "25e632d1-c8d8-47dd-99ab-3db9a4f86040",
+      "name": "Normaliza | Lote Reservado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const reservados = $input.all();\nconst posts = $('Busca Posts').all();\n\n// Índice dos posts originalmente retornados pelo WordPress\nconst postsMap = new Map(\n  posts.map(item => [\n    Number(item.json.id),\n    item.json\n  ])\n);\n\nreturn reservados.map(item => {\n\n  const reserva = item.json;\n  const post = postsMap.get(Number(reserva.post_id));\n\n  if (!post) {\n    throw new Error(\n      `Post ${reserva.post_id} não encontrado no resultado de Busca Posts`\n    );\n  }\n\n  return {\n    json: {\n      // CONTROLE DA MIGRAÇÃO\n      migration_id: reserva.migration_id,\n      ordem: reserva.ordem,\n      status_migracao: reserva.status,\n\n      // POST WORDPRESS\n      post_id: reserva.post_id,\n      wp_media_id: reserva.wp_media_id,\n\n      post_date: post.date,\n      post_modified: post.modified,\n      post_slug: post.slug,\n      post_link: post.link\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -464
+      ],
+      "id": "f48df880-a4c4-43bf-961f-274078350331",
+      "name": "Recupera | Contexto Post"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.original_url.replace('https://energialimpa.live', 'https://n8n-pel-proxy.core360.workers.dev/energia') }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        -64
+      ],
+      "id": "46ead305-11d4-47ad-adac-ff82717ee5e4",
+      "name": "Download | Featured IMG"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "a3aoY0QD5z0J8tvg",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/a3aoY0QD5z0J8tvg",
+          "cachedResultName": "SUB Fluxo | Midia Externa Cloudinary"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        -48
+      ],
+      "id": "516482ef-10d7-4159-8db3-f6f25f504738",
+      "name": "Chamar Repositório Externo"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        352,
+        -64
+      ],
+      "id": "be7ade3d-2d93-4415-8a02-527605c7253b",
+      "name": "Loop"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45e691a0-8e5d-44f3-9758-22c1a68a4d17",
+              "name": "data",
+              "value": "=data",
+              "type": "binary"
+            },
+            {
+              "id": "2c921394-e953-4110-b10c-4088d5ce5a93",
+              "name": "ind-api-folder",
+              "value": "pel/featured",
+              "type": "string"
+            },
+            {
+              "id": "6d961c7c-77f9-4cef-8bea-5b768d2960a5",
+              "name": "operacao_cloudinary",
+              "value": "MIGRACAO",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        592,
+        -48
+      ],
+      "id": "14414cb2-600f-4734-88be-ef8301e8ea33",
+      "name": "Prepara | Cloudinary"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 0-5 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -816,
+        -272
+      ],
+      "id": "fa7ea6ae-2619-4a42-97b7-f53f064b125b",
+      "name": "Start Agenda"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// RESULTADO RETORNADO PELO SUBFLUXO CLOUDINARY\n// ============================================================\n\nconst cloudinary = $json;\n\n\n// ============================================================\n// CONTEXTO ORIGINAL DA MÍDIA ATUAL DO LOOP\n// ============================================================\n\nconst origem = $('Loop').item.json;\n\n\n// ============================================================\n// VALIDAÇÕES\n// ============================================================\n\nif (!origem.migration_id) {\n  throw new Error('migration_id não encontrado no item atual do Loop.');\n}\n\nif (!origem.post_id) {\n  throw new Error(\n    `post_id não encontrado para migration_id ${origem.migration_id}.`\n  );\n}\n\nif (!origem.wp_media_id) {\n  throw new Error(\n    `wp_media_id não encontrado para migration_id ${origem.migration_id}.`\n  );\n}\n\nif (!cloudinary.public_id) {\n  throw new Error(\n    `Cloudinary não retornou public_id para migration_id ${origem.migration_id}.`\n  );\n}\n\nif (!cloudinary.secure_url) {\n  throw new Error(\n    `Cloudinary não retornou secure_url para migration_id ${origem.migration_id}.`\n  );\n}\n\n\n// ============================================================\n// SHA-256\n//\n// Nosso public_id possui:\n// pel/featured/<SHA256>\n//\n// Pegamos somente a última parte.\n// ============================================================\n\nconst sha256 =\n  cloudinary.public_id\n    .split('/')\n    .pop();\n\nif (!/^[a-f0-9]{64}$/i.test(sha256)) {\n  throw new Error(\n    `SHA-256 inválido extraído do public_id: ${cloudinary.public_id}`\n  );\n}\n\n\n// ============================================================\n// RESULTADO NORMALIZADO DA ITERAÇÃO\n// ============================================================\n\nreturn {\n  json: {\n\n    migration_id:\n      Number(origem.migration_id),\n\n    ordem:\n      Number(origem.ordem),\n\n    post_id:\n      Number(origem.post_id),\n\n    wp_media_id:\n      Number(origem.wp_media_id),\n\n    original_url:\n      origem.original_url ?? null,\n\n    original_file:\n      origem.original_file ?? null,\n\n    sha256,\n\n    cloudinary_public_id:\n      cloudinary.public_id,\n\n    cloudinary_url:\n      cloudinary.secure_url,\n\n    cloudinary_asset_id:\n      cloudinary.asset_id ?? null,\n\n    cloudinary_bytes:\n      cloudinary.bytes ?? null,\n\n    cloudinary_width:\n      cloudinary.width ?? null,\n\n    cloudinary_height:\n      cloudinary.height ?? null,\n\n    cloudinary_format:\n      cloudinary.format ?? null,\n\n    upload_ok: true\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        176
+      ],
+      "id": "efe4e957-4f93-42e9-ae94-e31a6e9af3be",
+      "name": "Consolida | Resultado Upload"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        176
+      ],
+      "id": "3e83c05b-d55e-49d8-b521-b999b7eef4f9",
+      "name": "Wait 10sec",
+      "webhookId": "1a3ab2dd-b121-4342-b27f-272abcf34933"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (items.length === 0) {\n  throw new Error('Nenhum resultado de upload recebido do Loop.');\n}\n\nconst uploads = items.map((item, index) => {\n  const row = item.json;\n\n  if (!row.migration_id) {\n    throw new Error(`Item ${index + 1}: migration_id ausente.`);\n  }\n\n  if (row.upload_ok !== true) {\n    throw new Error(\n      `Migration ${row.migration_id}: upload não confirmado.`\n    );\n  }\n\n  if (!row.sha256) {\n    throw new Error(\n      `Migration ${row.migration_id}: SHA-256 ausente.`\n    );\n  }\n\n  if (!row.cloudinary_public_id) {\n    throw new Error(\n      `Migration ${row.migration_id}: cloudinary_public_id ausente.`\n    );\n  }\n\n  if (!row.cloudinary_url) {\n    throw new Error(\n      `Migration ${row.migration_id}: cloudinary_url ausente.`\n    );\n  }\n\n  // Cloud name extraído da URL real retornada pelo Cloudinary.\n  const match = row.cloudinary_url.match(\n    /^https:\\/\\/res\\.cloudinary\\.com\\/([^/]+)\\//\n  );\n\n  if (!match) {\n    throw new Error(\n      `Migration ${row.migration_id}: URL Cloudinary inválida: ${row.cloudinary_url}`\n    );\n  }\n\n  return {\n    migration_id: Number(row.migration_id),\n    post_id: Number(row.post_id),\n    wp_media_id: Number(row.wp_media_id),\n\n    original_url: row.original_url,\n\n    sha256: row.sha256,\n\n    cloudinary_cloud_name: match[1],\n    cloudinary_public_id: row.cloudinary_public_id,\n    cloudinary_url: row.cloudinary_url,\n\n    cloudinary_asset_id: row.cloudinary_asset_id ?? null,\n    cloudinary_bytes: row.cloudinary_bytes ?? null,\n    cloudinary_width: row.cloudinary_width ?? null,\n    cloudinary_height: row.cloudinary_height ?? null,\n    cloudinary_format: row.cloudinary_format ?? null\n  };\n});\n\nreturn [\n  {\n    json: {\n      total_uploads: uploads.length,\n      uploads\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -256
+      ],
+      "id": "c73790c0-5a29-4b32-9d5c-769e00c7c953",
+      "name": "Monta | Lote Uploads"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CALL SP_WP_registra_cloudinary_lote(\n  '{{ JSON.stringify($json.uploads).replace(/'/g, \"''\") }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        -256
+      ],
+      "id": "f7c39f7f-d4cc-46f6-98ae-9640f14bf523",
+      "name": "SP | Registra Cloudinary Lote"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lote = $('Monta | Lote Uploads').first().json;\nconst checkpoint = $('Monta | Candidatos [5]').first().json;\n\n// ---------------------------------------------------------\n// 1. Valida lote Cloudinary\n// ---------------------------------------------------------\n\nif (!lote?.uploads || !Array.isArray(lote.uploads)) {\n  throw new Error('Lote de uploads Cloudinary não encontrado.');\n}\n\nif (lote.uploads.length === 0) {\n  throw new Error('Lote Cloudinary vazio.');\n}\n\n// ---------------------------------------------------------\n// 2. Valida contexto da página / checkpoint\n// ---------------------------------------------------------\n\nconst paginaProcessada = Number(checkpoint.pagina_processada);\nconst ultimoPostPagina = Number(checkpoint.ultimo_post_pagina);\n\nif (!paginaProcessada) {\n  throw new Error('pagina_processada inválida ou não encontrada.');\n}\n\nif (!ultimoPostPagina) {\n  throw new Error('ultimo_post_pagina inválido ou não encontrado.');\n}\n\nif (\n  !Array.isArray(checkpoint.candidatos) ||\n  checkpoint.candidatos.length === 0\n) {\n  throw new Error('Lista candidatos da página não encontrada.');\n}\n\n// Normaliza o contrato que será enviado ao subfluxo\nconst candidatosPagina = checkpoint.candidatos.map(item => ({\n  post_id: Number(item.post_id),\n  wp_media_id: Number(item.wp_media_id)\n}));\n\n// ---------------------------------------------------------\n// 3. Recupera lote Cloudinary\n// ---------------------------------------------------------\n\nconst mapa = new Map();\n\nfor (const row of lote.uploads) {\n  const migrationId = Number(row.migration_id);\n\n  if (!migrationId) {\n    throw new Error('migration_id inválido no lote Cloudinary.');\n  }\n\n  mapa.set(migrationId, {\n    migration_id: migrationId,\n    post_id: Number(row.post_id),\n    wp_media_id_original: Number(row.wp_media_id),\n\n    original_url: row.original_url,\n    sha256: row.sha256,\n\n    cloudinary_cloud_name: row.cloudinary_cloud_name,\n    cloudinary_public_id: row.cloudinary_public_id,\n    cloudinary_url: row.cloudinary_url,\n    cloudinary_asset_id: row.cloudinary_asset_id ?? null,\n\n    width: row.cloudinary_width ?? null,\n    height: row.cloudinary_height ?? null,\n    format: row.cloudinary_format ?? null,\n\n    // -----------------------------------------------------\n    // Contexto da página para fechamento do checkpoint\n    // -----------------------------------------------------\n    pagina_processada: paginaProcessada,\n    ultimo_post_pagina: ultimoPostPagina,\n    candidatos_pagina: candidatosPagina\n  });\n}\n\n// ---------------------------------------------------------\n// 4. Retorno para o Sub Fluxo\n// ---------------------------------------------------------\n\nreturn [...mapa.values()]\n  .sort((a, b) => a.migration_id - b.migration_id)\n  .map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        112
+      ],
+      "id": "76c3d5a1-b62c-4b12-8919-0b29e52bda66",
+      "name": "Recupera | Lote Cloudinary",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "723defe9-2030-4567-b4cf-800c96806b79",
+              "leftValue": "={{ $json.tem_reserva }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        -448
+      ],
+      "id": "2b3bbaaa-b44e-46cf-bb72-4d46d9497a0f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1d09195b-8009-4c1a-9966-6a6ee6657113",
+              "leftValue": "={{    typeof $json.source_url === 'string' &&   $json.source_url.startsWith('https://energialimpa.live/wp-content/uploads/') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -336,
+        -48
+      ],
+      "id": "ca8959e6-b432-4c16-aaf5-eb47b843c79a",
+      "name": "IF Mídia Local?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CALL SP_WP_registra_midia_externa(\n    {{ $('Recupera | Contexto Post').item.json.migration_id }},\n    {{ $('Recupera | Contexto Post').item.json.post_id }},\n    {{ $('Recupera | Contexto Post').item.json.wp_media_id }},\n    '{{ ($json.source_url || '').replace(/'/g, \"''\") }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -528,
+        176
+      ],
+      "id": "b937c251-fea7-4fd3-86b2-8b380581037d",
+      "name": "SP | Registra Mídia Externa"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "iO8Q2svNsBNcWxBL",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/iO8Q2svNsBNcWxBL",
+          "cachedResultName": "PEL | Featured Associação WP | Sub Fluxo"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        112
+      ],
+      "id": "2b5f1fb5-511b-4fad-962f-b733d2a1da25",
+      "name": "PEL | Featured Associação WP | Sub Fluxo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = $input.all();\n\n// Recupera o checkpoint que originou esta busca\nconst checkpoint = $('DB | Ponteiro Migração').first().json;\n\nconst candidatos = posts\n  .filter(item =>\n    item.json.id &&\n    item.json.featured_media &&\n    Number(item.json.featured_media) > 0\n  )\n  .map(item => ({\n    post_id: Number(item.json.id),\n    wp_media_id: Number(item.json.featured_media)\n  }));\n\n// Último post efetivamente recebido nesta página.\n// Importante: usa todos os posts da página, não apenas os candidatos\n// que possuem featured_media.\nconst ultimoPostPagina = posts.length\n  ? Number(posts[posts.length - 1].json.id)\n  : null;\n\n// Limite operacional controlado pelo banco\nconst limiteExecucao = Number(checkpoint.limite_execucao);\n\nif (!limiteExecucao || limiteExecucao < 1) {\n  throw new Error(\n    `limite_execucao inválido no checkpoint: ${checkpoint.limite_execucao}`\n  );\n}\n\nreturn [\n  {\n    json: {\n      candidatos,\n\n      // Quantidade máxima que a SP poderá reservar nesta execução\n      limite: limiteExecucao,\n\n      total_candidatos: candidatos.length,\n\n      pagina_processada: Number(checkpoint.pagina_atual),\n\n      // Tamanho da página consultada no WordPress\n      per_page: Number(checkpoint.per_page),\n\n      // Mantido também para rastreabilidade\n      limite_execucao: limiteExecucao,\n\n      ultimo_post_pagina: ultimoPostPagina\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -448
+      ],
+      "id": "0dd78aa4-1fc7-4306-8cd5-6bced7e9c7b1",
+      "name": "Monta | Candidatos [5]"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        -448
+      ],
+      "id": "179d1344-b1d0-42d7-9792-c1957ef9b4e0",
+      "name": "Manual"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    processo,\n    pagina_atual,\n    per_page,\n    limite_execucao,\n    ultimo_post_id\nFROM WP_migracao_checkpoint\nWHERE processo = 'FEATURED'\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -512,
+        -448
+      ],
+      "id": "c603dc6f-60e7-4fc7-a1ae-dddf4f23b147",
+      "name": "DB | Ponteiro Migração"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CALL SP_WP_fecha_checkpoint_featured(\n  '{{ JSON.stringify($json.candidatos).replace(/'/g, \"''\") }}',\n  {{ $json.pagina_processada }},\n  {{ $json.ultimo_post_pagina }}\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -128,
+        176
+      ],
+      "id": "fc2dd98f-694f-4c71-8cb9-35f799d43ba1",
+      "name": "SP | Fecha Checkpoint"
+    },
+    {
+      "parameters": {
+        "jsCode": "const origem = $('Monta | Candidatos [5]').first().json;\n\nif (!Array.isArray(origem.candidatos) || origem.candidatos.length === 0) {\n  throw new Error('Candidatos da página não encontrados.');\n}\n\nif (!origem.pagina_processada) {\n  throw new Error('pagina_processada não encontrada.');\n}\n\nif (!origem.ultimo_post_pagina) {\n  throw new Error('ultimo_post_pagina não encontrado.');\n}\n\nreturn [\n  {\n    json: {\n      candidatos: origem.candidatos.map(item => ({\n        post_id: Number(item.post_id),\n        wp_media_id: Number(item.wp_media_id)\n      })),\n\n      pagina_processada: Number(origem.pagina_processada),\n      ultimo_post_pagina: Number(origem.ultimo_post_pagina),\n\n      total_candidatos: origem.candidatos.length\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        176
+      ],
+      "id": "6c6e9526-2f0b-4be6-a30f-587ecad2f7eb",
+      "name": "Prepara | Fecha Checkpoint",
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Busca Posts": {
+      "main": [
+        [
+          {
+            "node": "Monta | Candidatos [5]",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET | Featured Media": {
+      "main": [
+        [
+          {
+            "node": "IF Mídia Local?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Reserva Lote": {
+      "main": [
+        [
+          {
+            "node": "Normaliza | Lote Reservado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normaliza | Lote Reservado": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recupera | Contexto Post": {
+      "main": [
+        [
+          {
+            "node": "GET | Featured Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normaliza | Featured Media": {
+      "main": [
+        [
+          {
+            "node": "Download | Featured IMG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download | Featured IMG": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop": {
+      "main": [
+        [
+          {
+            "node": "Monta | Lote Uploads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepara | Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara | Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Chamar Repositório Externo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Agenda": {
+      "main": [
+        [
+          {
+            "node": "DB | Ponteiro Migração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar Repositório Externo": {
+      "main": [
+        [
+          {
+            "node": "Consolida | Resultado Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolida | Resultado Upload": {
+      "main": [
+        [
+          {
+            "node": "Wait 10sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10sec": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta | Lote Uploads": {
+      "main": [
+        [
+          {
+            "node": "SP | Registra Cloudinary Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Registra Cloudinary Lote": {
+      "main": [
+        [
+          {
+            "node": "Recupera | Lote Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recupera | Lote Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "PEL | Featured Associação WP | Sub Fluxo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Recupera | Contexto Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepara | Fecha Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Mídia Local?": {
+      "main": [
+        [
+          {
+            "node": "Normaliza | Featured Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SP | Registra Mídia Externa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta | Candidatos [5]": {
+      "main": [
+        [
+          {
+            "node": "SP | Reserva Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "DB | Ponteiro Migração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB | Ponteiro Migração": {
+      "main": [
+        [
+          {
+            "node": "Busca Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Registra Mídia Externa": {
+      "main": [
+        [
+          {
+            "node": "Prepara | Fecha Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara | Fecha Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "SP | Fecha Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": []
+}
