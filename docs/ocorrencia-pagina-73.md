@@ -10,7 +10,7 @@ O resultado funcional de `SP_WP_conclui_migracao_featured_lote` retornou a migra
 
 Para concluir a página, verificar o estado atual de 458–462 e reconciliar possíveis assets Cloudinary anteriores. Para cada item sem asset, reclassificar `PROCESSING` em `ERROR` com guarda de ID, par WordPress e ausência de registro Cloudinary; depois executar o PAI manualmente com a agenda pausada. O primeiro lote parcial deve manter o checkpoint `AGUARDANDO`; somente quando os seis candidatos estiverem `MIGRATED` ou `SKIPPED` a procedure poderá avançar a página. Conferir o checkpoint e a notificação antes de reativar a agenda.
 
-Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar o bloco inteiro na mesma conexão e confirmar `linhas_liberadas = 5` antes de `COMMIT`; caso contrário, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
+Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar `START TRANSACTION`, `UPDATE`, `SET` e `SELECT` juntos na mesma conexão, sem selecionar apenas as duas últimas linhas no Workbench. Confirmar `linhas_liberadas = 5` antes de `COMMIT`; caso contrário, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
 
 ```sql
 START TRANSACTION;
@@ -107,48 +107,11 @@ Antes de liberar uma migration, comparar o código do node `SHA-256 Featured IMG
 
 `SP_WP_recupera_migracao_featured_processing` já lista as migrations `PROCESSING` sem mídia virtual, mas nenhum dos cinco exports a chama. Recuperar essas linhas exige um caminho controlado de reconciliação; a procedure de reserva atual só aceita linhas novas, `PENDING` ou `ERROR`.
 
-## Nova execução diagnóstica de um item
+## Histórico do diagnóstico da migration 457
 
-1. Manter `Start Agenda` pausado e confirmar ausência de execuções manuais ativas. Importar a versão corrigida do subfluxo em ambiente de revisão, religar a credencial MySQL, configurar `CLOUDINARY_PROXY_KEY` no n8n e apontar o node `Chamar Repositório Externo` para o ID correto. O export está inativo e não foi implantado na instância n8n.
-2. Escolher uma única migration entre 457–462. Obter os mesmos bytes de mídia que o PAI baixa, calcular SHA-256 e identificar a conta Cloudinary que `SP_Get_Claudinary_API` seleciona para `pel/featured`. Consultar nessa conta o asset `pel/featured/<sha256>` e guardar ID, URL e resultado da consulta. Não incluir chaves ou `AUTHORIZATION` na evidência compartilhada.
-3. Se o asset existir, não repetir o POST. Reconciliar o registro com o asset confirmado e retomar as etapas posteriores de associação e auditoria em execução controlada. O PAI atual não implementa esse caminho de reaproveitamento; é preciso validá-lo antes da operação. Se o asset não existir, liberar **somente essa migration** para reserva, com conferência de estado e identidade no banco. Não redefinir as seis em conjunto.
-4. Com o item isolado e o fluxo corrigido, executar manualmente, anotar ID da execução, último node executado, erro sanitizado e outputs funcionais de reserva, upload, registro, associação e checkpoint antes da limpeza do histórico. Como os outros cinco seguem `PROCESSING`, é esperado que o checkpoint continue `AGUARDANDO` mesmo que esse item seja concluído. Não interpretar isso como falha do item nem como página concluída.
-5. Reconciliar os cinco restantes pelo mesmo método; depois conferir estados finais e executar `SP_WP_fecha_checkpoint_featured` pelo caminho normal. Só reativar a agenda após um lote completo verificado. Verificar o envio de e-mail antes de repetir qualquer trecho de notificação.
+A 457 foi liberada de `PROCESSING` para `ERROR`, reservada novamente e concluída como `MIGRATED`. O SQL usado nesse diagnóstico não deve ser repetido para a 457. O bloco atual para as migrations 458–462 está no início deste documento e exige confirmação prévia dos assets Cloudinary.
 
-Para o item que **comprovadamente não possui asset**, esta é uma forma de liberar a reserva com guarda de identidade e estado. Executar a transação apenas depois das verificações acima, substituindo os três IDs pelo item escolhido. Executar o bloco inteiro na **mesma conexão**; no MySQL Workbench, uma seleção de texto executa apenas o trecho selecionado. `ROW_COUNT()` reflete somente o comando imediatamente anterior na conexão: executá-lo sozinho depois de outra consulta pode mostrar `0` mesmo que o `UPDATE` tenha alterado a linha. Confirmar `linhas_liberadas = 1` antes de `COMMIT`; caso contrário, `ROLLBACK` e nova investigação. Não alterar `WP_migracao_checkpoint` diretamente.
-
-```sql
-START TRANSACTION;
-
-UPDATE WP_migracao_featured
-SET status = 'ERROR',
-    error_message = 'RETRY_DIAGNOSTICO_ASSET_AUSENTE',
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = 457
-  AND post_id = 6514
-  AND wp_media_id = 6519
-  AND status = 'PROCESSING'
-  AND wp_media_id_virtual IS NULL
-  AND cloudinary_url IS NULL;
-
-SET @linhas_liberadas := ROW_COUNT();
-SELECT @linhas_liberadas AS linhas_liberadas;
--- COMMIT somente se linhas_liberadas = 1; senão ROLLBACK.
-```
-
-O usuário informou que o SQL de liberação da 457 foi executado no banco; este repositório não executou comandos no banco. A consulta externa de asset não pode ser substituída pela ausência de `cloudinary_url` na tabela.
-
-Se o Workbench mostrar `0` após executar apenas `SELECT ROW_COUNT()`, não repetir o `UPDATE` com base nisso. Primeiro consultar o registro na mesma sessão:
-
-```sql
-SELECT id, post_id, wp_media_id, status, sha256,
-       cloudinary_public_id, cloudinary_url, wp_media_id_virtual,
-       error_message, updated_at
-FROM WP_migracao_featured
-WHERE id = 457;
-```
-
-Se houver transação aberta e o asset ainda não tiver sido verificado, executar `ROLLBACK` nessa conexão. A consulta e o rollback permitem distinguir um comando que não rodou de uma alteração ainda não confirmada.
+No MySQL Workbench, executar somente `SELECT ROW_COUNT()` ou `SET @linhas_liberadas := ROW_COUNT()` depois de outros comandos pode mostrar `0` sem indicar o efeito do `UPDATE` original. O valor precisa ser capturado imediatamente após o `UPDATE`, na mesma conexão. Conferir o estado persistido das linhas antes de qualquer nova tentativa.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
@@ -164,4 +127,4 @@ Se houver transação aberta e o asset ainda não tiver sido verificado, executa
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade inicial está confirmada (`PROCESSING` nos seis registros). A migration 457 foi retomada e o resultado funcional de conclusão foi `MIGRATED`; restam 458–462 e a verificação do checkpoint da página 73.
+Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade inicial está confirmada (`PROCESSING` nos seis registros). A migration 457 foi retomada e o resultado funcional de conclusão foi `MIGRATED`; o checkpoint confirmou `AGUARDANDO` com 1/6 resolvido. Restam 458–462.
