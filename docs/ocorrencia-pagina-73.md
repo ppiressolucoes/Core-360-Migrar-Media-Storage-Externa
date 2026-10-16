@@ -10,7 +10,7 @@ O resultado funcional de `SP_WP_conclui_migracao_featured_lote` retornou a migra
 
 Para concluir a página, verificar o estado atual de 458–462 e reconciliar possíveis assets Cloudinary anteriores. Para cada item sem asset, reclassificar `PROCESSING` em `ERROR` com guarda de ID, par WordPress e ausência de registro Cloudinary; depois executar o PAI manualmente com a agenda pausada. O primeiro lote parcial deve manter o checkpoint `AGUARDANDO`; somente quando os seis candidatos estiverem `MIGRATED` ou `SKIPPED` a procedure poderá avançar a página. Conferir o checkpoint e a notificação antes de reativar a agenda.
 
-Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar `START TRANSACTION`, `UPDATE`, `SET` e `SELECT` juntos na mesma conexão, sem selecionar apenas as duas últimas linhas no Workbench. Confirmar `linhas_liberadas = 5` antes de `COMMIT`; caso contrário, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
+Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar `START TRANSACTION`, `UPDATE` e `SELECT` juntos na mesma conexão. No painel **Action Output** do Workbench, confirmar que o `UPDATE` afetou cinco linhas e que a consulta mostra as cinco em `ERROR`; só então `COMMIT` na mesma conexão. Se a contagem ou o estado divergir, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
 
 ```sql
 START TRANSACTION;
@@ -32,9 +32,11 @@ WHERE (id, post_id, wp_media_id) IN (
   AND cloudinary_url IS NULL
   AND wp_media_id_virtual IS NULL;
 
-SET @linhas_liberadas := ROW_COUNT();
-SELECT @linhas_liberadas AS linhas_liberadas;
--- COMMIT somente se linhas_liberadas = 5; senão ROLLBACK.
+SELECT id, post_id, wp_media_id, status, cloudinary_url, wp_media_id_virtual
+FROM WP_migracao_featured
+WHERE id BETWEEN 458 AND 462
+ORDER BY id;
+-- COMMIT somente se o UPDATE afetou 5 linhas e o SELECT mostra 5 em ERROR.
 ```
 
 ## Observação recebida
@@ -111,7 +113,7 @@ Antes de liberar uma migration, comparar o código do node `SHA-256 Featured IMG
 
 A 457 foi liberada de `PROCESSING` para `ERROR`, reservada novamente e concluída como `MIGRATED`. O SQL usado nesse diagnóstico não deve ser repetido para a 457. O bloco atual para as migrations 458–462 está no início deste documento e exige confirmação prévia dos assets Cloudinary.
 
-No MySQL Workbench, executar somente `SELECT ROW_COUNT()` ou `SET @linhas_liberadas := ROW_COUNT()` depois de outros comandos pode mostrar `0` sem indicar o efeito do `UPDATE` original. O valor precisa ser capturado imediatamente após o `UPDATE`, na mesma conexão. Conferir o estado persistido das linhas antes de qualquer nova tentativa.
+Na tentativa seguinte, o **Action Output** do Workbench informou `UPDATE ... 5 row(s) affected`, mas `SET @linhas_liberadas := ROW_COUNT()` seguido de `SELECT` mostrou `0`. Portanto, o `0` dessa variável não deve ser usado para concluir que o `UPDATE` falhou, nem para repetir a alteração. A evidência da operação é o resultado do próprio `UPDATE`, combinado com a leitura das cinco linhas. Ainda não foi informado se houve `COMMIT` ou `ROLLBACK` dessa transação; conferir o estado em outra conexão antes de nova execução do PAI.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
