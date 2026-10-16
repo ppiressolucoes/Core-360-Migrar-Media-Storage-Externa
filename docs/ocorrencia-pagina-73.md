@@ -6,13 +6,26 @@ O gatilho `Start Agenda` executou o PAI e chegou a `SP | Reserva Lote`. `Normali
 
 O checkpoint não avançou, conforme o contrato da procedure. A saída completa de `SP | Reserva Lote` foi fornecida depois: `[[], {"fieldCount": 0, "affectedRows": 6, ...}]`. O resultset está realmente vazio; não houve row funcional que o normalizador deixou de reconhecer. `affectedRows = 6` é metadado do driver, não prova que seis migrations foram reservadas.
 
-Pelo SQL de referência e pelo limite positivo exigido em `Monta | Candidatos [5]`, cada candidato válido deixou de satisfazer pelo menos uma condição de reserva: já tem migration em `PROCESSING`/`MIGRATED`/`SKIPPED`, ou aparece como mídia virtual do mesmo post. Ainda faltam as linhas de `WP_migracao_featured` para identificar qual condição se aplica a cada um e conferir que a procedure implantada corresponde à referência. O resultado `AGUARDANDO` com 0/6 resolvidos exige essa conciliação antes de qualquer retry.
+O resultado somente leitura de `WP_migracao_featured` confirmou a causa da inelegibilidade: as seis migrations estão em `PROCESSING`. Nenhuma tem `wp_media_id_virtual` ou URL Cloudinary registrada; `ja_e_midia_virtual = 0` em todas. A procedure de reserva exclui `PROCESSING`, e a de checkpoint ainda não pode contá-las como resolvidas. Falta identificar em qual node cada tentativa anterior parou; os dados do banco não provam que nenhum upload externo tenha ocorrido antes de uma falha no registro.
 
 O retorno de `Busca Posts` confirmou os seis pares da página: `(6514, 6519)`, `(6522, 6534)`, `(6537, 6549)`, `(6555, 6561)`, `(6562, 6566)` e `(6589, 6592)`. Esses são IDs do WordPress; o retorno não contém o estado das migrations no banco.
+
+| Migration | Post | Mídia original | Estado | Última atualização informada |
+| ---: | ---: | ---: | --- | --- |
+| 457 | 6514 | 6519 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 03:00:02` |
+| 458 | 6522 | 6534 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 03:00:02` |
+| 459 | 6537 | 6549 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 03:00:02` |
+| 460 | 6555 | 6561 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 04:00:01` |
+| 461 | 6562 | 6566 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 04:00:01` |
+| 462 | 6589 | 6592 | `PROCESSING`, sem URL ou mídia virtual | `2026-10-16 04:00:01` |
+
+Os horários são os valores informados pelo banco, sem fuso horário identificado. Os dois grupos coincidem com lotes de três itens. O histórico dessas execuções foi removido pela regra de limpeza do n8n, portanto não há evidência do último node executado nem confirmação de que o upload Cloudinary não ocorreu.
 
 ## Ajuste no export
 
 `Normaliza | Lote Reservado` agora percorre arrays e wrappers conhecidos, ignora metadados, valida IDs/status `PROCESSING` e recusa retornos desconhecidos. Ausência real de rows continua seguindo o caminho sem reserva. O novo `Valida | Checkpoint PAI` lê o resultado funcional da procedure após o fechamento: quando não houve reserva e o checkpoint retorna `AGUARDANDO`, a execução termina com erro explícito de página bloqueada. Isso evita que o agendamento pareça ter concluído a migração. A validação não reprocessa candidatos nem altera o checkpoint.
+
+Também foi corrigida uma associação por posição em `Normaliza | Featured Media`: após `IF Mídia Local?`, só as mídias locais chegam a esse node, mas o código anterior comparava sua quantidade e ordem com todos os posts reservados. O export agora usa o vínculo de item do n8n (`itemMatching`) e mantém a checagem do ID da mídia. Esse defeito pode afetar lotes mistos; o histórico removido não permite atribuir a ele esta ocorrência específica.
 
 ## Diagnóstico somente leitura
 
@@ -47,7 +60,7 @@ LEFT JOIN WP_migracao_featured m
 ORDER BY c.post_id, m.id;
 ```
 
-Conferir também a linha `FEATURED` em `WP_migracao_checkpoint` e as execuções anteriores do PAI/subfluxos para esses IDs. `PROCESSING` com mídia virtual exige auditoria de associação/exclusão antes de concluir ou recuperar; `PROCESSING` sem mídia virtual exige rastrear onde a tentativa anterior parou. `ERROR` pode voltar à reserva, salvo bloqueio por mídia virtual. Não redefinir status nem avançar o checkpoint por `UPDATE` manual.
+Antes de recuperar, pausar o agendamento e confirmar na interface do n8n que não há execução ativa do PAI ou dos subfluxos para os IDs 457–462. Como o histórico anterior foi eliminado, conferir se os assets já existem nas contas Cloudinary usando o public ID/SHA-256 que o subfluxo de upload efetivamente usa. Se existirem, reutilizar o asset e retomar a partir do registro em banco; se não existirem, uma nova tentativa de upload precisa ser idempotente. O export do subfluxo Cloudinary ainda não foi fornecido para verificar esse contrato. Não redefinir status nem avançar o checkpoint por `UPDATE` manual.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
@@ -63,4 +76,4 @@ Conferir também a linha `FEATURED` em `WP_migracao_checkpoint` e as execuções
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado e o resultset vazio da reserva. A causa concreta da inelegibilidade e a recuperação do agendamento ainda dependem dos estados dos seis candidatos no banco.
+Os testes locais cobrem o JSON de checkpoint enviado e o resultset vazio da reserva. A causa da inelegibilidade está confirmada (`PROCESSING` nos seis registros); a recuperação segura ainda depende das execuções n8n que fizeram as reservas.

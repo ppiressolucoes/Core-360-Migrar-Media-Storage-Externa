@@ -78,3 +78,21 @@ test('checkpoint pendente durante processamento de reservas não interrompe o lo
   const output = run('Valida | Checkpoint PAI', checkpoint('AGUARDANDO', 0), {tem_reserva: true});
   assert.equal(output[0].json.resultado, 'AGUARDANDO');
 });
+
+test('mídias locais mantêm o post correto quando o IF filtra outra mídia', () => {
+  const media = (id, url) => ({json: {id, source_url: url, media_details: {width: 800}}});
+  const posts = [
+    {migration_id: 457, post_id: 6514, wp_media_id: 6519},
+    {migration_id: 458, post_id: 6522, wp_media_id: 6534},
+    {migration_id: 459, post_id: 6537, wp_media_id: 6549}
+  ];
+  const linked = [posts[0], posts[2]];
+  const output = vm.runInNewContext(`(function () {\n${code('Normaliza | Featured Media')}\n})()`, {
+    $input: {all: () => [media(6519, 'https://example.test/a.jpg'), media(6549, 'https://example.test/c.jpg')]},
+    $: name => {
+      assert.equal(name, 'Recupera | Contexto Post');
+      return {itemMatching: index => ({json: linked[index]})};
+    }
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(output.map(item => item.json.post_id))), [6514, 6537]);
+});
