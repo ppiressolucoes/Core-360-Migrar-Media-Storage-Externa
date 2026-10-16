@@ -18,13 +18,13 @@ Em `SP_WP_fecha_checkpoint_featured`, uma lista vazia ou sem candidatos válidos
 | Procedure | Entrada | Resultado ou efeito confirmado pelo SQL fornecido |
 | --- | --- | --- |
 | `SP_WP_reserva_migracao_featured` | candidatos JSON, limite | Reserva candidatos novos, `PENDING` ou `ERROR` como `PROCESSING`; exclui mídias virtuais já registradas; retorna linhas reservadas. |
-| `SP_WP_recupera_migracao_featured_processing` | candidatos JSON | Lista migrations `PROCESSING` ainda sem mídia virtual. Não há chamada nos quatro exports recebidos. |
+| `SP_WP_recupera_migracao_featured_processing` | candidatos JSON | Lista migrations `PROCESSING` ainda sem mídia virtual. Não há chamada nos cinco exports recebidos. |
 | `SP_WP_registra_cloudinary_lote` | uploads JSON | Grava SHA-256, public ID e URL Cloudinary somente em `PROCESSING`; retorna totais. |
 | `SP_WP_registra_midia_externa` | migration, post, mídia original, URL | Marca como `SKIPPED` quando a origem já é externa. |
 | `SP_WP_registra_associacao_lote` | associações JSON | Grava `wp_media_id_virtual` somente em `PROCESSING` com URL Cloudinary; rejeita ID virtual divergente. |
 | `SP_WP_registra_erro_associacao` | cinco valores escalares | Marca `ERROR` e grava mensagem, sem rebaixar `MIGRATED`; retorna estado. |
 | `SP_WP_conclui_migracao_featured_lote` | lote JSON | Valida post, mídia original, mídia virtual e URL; muda `PROCESSING` para `MIGRATED` em transação; aceita replay de `MIGRATED` com o mesmo contexto; retorna `migration_id`, `post_id`, IDs das mídias, `cloudinary_url`, `status`, `migrated_at`. |
 | `SP_WP_fecha_checkpoint_featured` | candidatos JSON, página processada, último post | Conta candidatos com `MIGRATED` ou `SKIPPED`; responde `AGUARDANDO`, `AVANCADO` ou `JA_AVANCADO`. Só avança quando todos foram resolvidos e a página atual coincide. |
-| `SP_WP_avanca_checkpoint_featured` | página, último post | Avança diretamente a página após validar o ponteiro; não é chamada nos quatro exports recebidos. |
+| `SP_WP_avanca_checkpoint_featured` | página, último post | Avança diretamente a página após validar o ponteiro; não é chamada nos cinco exports recebidos. |
 
 `SP_WP_fecha_checkpoint_featured` efetua `COMMIT` antes de retornar `AVANCADO`. Uma falha posterior no Gmail não deve causar repetição do PAI, da exclusão ou do avanço. Um retry dessa procedure pode retornar `JA_AVANCADO`; a notificação deve ser recuperada isoladamente após conferir se já foi enviada.

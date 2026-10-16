@@ -60,7 +60,41 @@ LEFT JOIN WP_migracao_featured m
 ORDER BY c.post_id, m.id;
 ```
 
-Antes de recuperar, pausar o agendamento e confirmar na interface do n8n que não há execução ativa do PAI ou dos subfluxos para os IDs 457–462. Como o histórico anterior foi eliminado, conferir se os assets já existem nas contas Cloudinary usando o public ID/SHA-256 que o subfluxo de upload efetivamente usa. Se existirem, reutilizar o asset e retomar a partir do registro em banco; se não existirem, uma nova tentativa de upload precisa ser idempotente. O export do subfluxo Cloudinary ainda não foi fornecido para verificar esse contrato. Não redefinir status nem avançar o checkpoint por `UPDATE` manual.
+O usuário confirmou que o agendamento está pausado e que o histórico anterior foi eliminado. Ainda é necessário confirmar na interface do n8n que não há execução manual ativa para os IDs 457–462. O subfluxo Cloudinary fornecido calcula SHA-256 dos bytes recebidos e usa `public_id = <API-FOLDER>/<sha256>`, `overwrite=false` e `unique_filename=false`. Não há consulta prévia do asset. Um upload anterior pode ter sido concluído sem registro em `WP_migracao_featured`; uma repetição desse POST pode retornar erro de asset existente. A resposta exata depende do Worker, cujo código não foi fornecido.
+
+O node `SHA-256 Featured IMG` do export recebido referenciava `items.length` sem definir `items` no modo padrão `runOnceForAllItems` do Code node. Isso produziria `ReferenceError` quando a execução chegasse a esse ponto. O export versionado declara `const items = $input.all();`; o teste local confirmou o SHA-256 de dois conteúdos conhecidos e a preservação do binário. É um defeito concreto no subfluxo recebido, mas não há log para provar que foi o último node das execuções das 03:00 e 04:00.
+
+`SP_WP_recupera_migracao_featured_processing` já lista as migrations `PROCESSING` sem mídia virtual, mas nenhum dos cinco exports a chama. Recuperar essas linhas exige um caminho controlado de reconciliação; a procedure de reserva atual só aceita linhas novas, `PENDING` ou `ERROR`.
+
+## Nova execução diagnóstica de um item
+
+1. Manter `Start Agenda` pausado e confirmar ausência de execuções manuais ativas. Importar a versão corrigida do subfluxo em ambiente de revisão, religar a credencial MySQL, configurar `CLOUDINARY_PROXY_KEY` no n8n e apontar o node `Chamar Repositório Externo` para o ID correto. O export está inativo e não foi implantado na instância n8n.
+2. Escolher uma única migration entre 457–462. Obter os mesmos bytes de mídia que o PAI baixa, calcular SHA-256 e identificar a conta Cloudinary que `SP_Get_Claudinary_API` seleciona para `pel/featured`. Consultar nessa conta o asset `pel/featured/<sha256>` e guardar ID, URL e resultado da consulta. Não incluir chaves ou `AUTHORIZATION` na evidência compartilhada.
+3. Se o asset existir, não repetir o POST. Reconciliar o registro com o asset confirmado e retomar as etapas posteriores de associação e auditoria em execução controlada. O PAI atual não implementa esse caminho de reaproveitamento; é preciso validá-lo antes da operação. Se o asset não existir, liberar **somente essa migration** para reserva, com conferência de estado e identidade no banco. Não redefinir as seis em conjunto.
+4. Com o item isolado e o fluxo corrigido, executar manualmente, anotar ID da execução, último node executado, erro sanitizado e outputs funcionais de reserva, upload, registro, associação e checkpoint antes da limpeza do histórico. Como os outros cinco seguem `PROCESSING`, é esperado que o checkpoint continue `AGUARDANDO` mesmo que esse item seja concluído. Não interpretar isso como falha do item nem como página concluída.
+5. Reconciliar os cinco restantes pelo mesmo método; depois conferir estados finais e executar `SP_WP_fecha_checkpoint_featured` pelo caminho normal. Só reativar a agenda após um lote completo verificado. Verificar o envio de e-mail antes de repetir qualquer trecho de notificação.
+
+Para o item que **comprovadamente não possui asset**, esta é uma forma de liberar a reserva com guarda de identidade e estado. Executar a transação apenas depois das verificações acima, substituindo os três IDs pelo item escolhido. Confirmar `ROW_COUNT() = 1` antes de `COMMIT`; caso contrário, `ROLLBACK` e nova investigação. Não alterar `WP_migracao_checkpoint` diretamente.
+
+```sql
+START TRANSACTION;
+
+UPDATE WP_migracao_featured
+SET status = 'ERROR',
+    error_message = 'RETRY_DIAGNOSTICO_ASSET_AUSENTE',
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = 457
+  AND post_id = 6514
+  AND wp_media_id = 6519
+  AND status = 'PROCESSING'
+  AND wp_media_id_virtual IS NULL
+  AND cloudinary_url IS NULL;
+
+SELECT ROW_COUNT() AS linhas_liberadas;
+-- COMMIT somente se linhas_liberadas = 1; senão ROLLBACK.
+```
+
+Esse `UPDATE` é um roteiro de operação e **não foi executado**. A consulta externa de asset não pode ser substituída pela ausência de `cloudinary_url` no banco.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
@@ -76,4 +110,4 @@ Antes de recuperar, pausar o agendamento e confirmar na interface do n8n que nã
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado e o resultset vazio da reserva. A causa da inelegibilidade está confirmada (`PROCESSING` nos seis registros); a recuperação segura ainda depende das execuções n8n que fizeram as reservas.
+Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade está confirmada (`PROCESSING` nos seis registros). A nova execução ainda não foi feita; a retomada segura depende da reconciliação dos assets e da captura imediata do novo resultado no n8n.

@@ -8,7 +8,7 @@ Centralizar a manutenção e a evolução da migração de imagens Featured do p
 
 | Material | Local | Tratamento |
 | --- | --- | --- |
-| Quatro exports n8n fornecidos para a sprint | `workflows/` | Inativos, sem `pinData`, IDs de credenciais ou metadados de instância. O cabeçalho estático do proxy Cloudinary foi substituído por referência a variável de ambiente. IDs de subfluxos devem ser conferidos no destino. |
+| Cinco exports n8n fornecidos para a sprint | `workflows/` | Inativos, sem `pinData`, IDs de credenciais ou metadados de instância. O cabeçalho estático do proxy Cloudinary foi substituído por referência a variável de ambiente. IDs de subfluxos devem ser conferidos no destino. O export de upload recebeu a definição ausente de `items` no node SHA-256. |
 | Nove procedures fornecidas | `sql/reference/` | Texto de referência, com `DEFINER` da origem removido. Não são migrations implantadas ou validadas contra o banco atual. |
 | Esquema das tabelas informado | `docs/banco.md` | Transcrição resumida dos campos e contratos necessários. Índices adicionais não foram fornecidos. |
 | Diagnóstico e testes locais | `docs/diagnostico.md`, `tests/` | Correções propostas nos exports e verificações executáveis com Node.js. Não representam homologação no n8n. |
@@ -21,7 +21,7 @@ Os anexos originais não devem ser publicados: contêm dados de execução, vín
 - O `pinData` recebido de `SP | Fecha Checkpoint` mostrava um resultado funcional `AVANCADO` e um item separado de metadados MySQL. Esse dado foi usado para testar o parser sem publicar o `pinData`.
 - O export recebido já referencia `Chamar | Exclusão e Auditoria` no node de notificação. O erro histórico de node inexistente pertence a uma versão anterior ou a uma execução não incluída nos anexos.
 - O caminho de falha do registro de mídia virtual chamava `SP_WP_registra_erro_associacao` com um JSON único. O contrato SQL exige cinco escalares; a chamada foi corrigida no export versionado.
-- Não foram fornecidos código do plugin WordPress, Workers, Core Storage, integração R2, subfluxo de upload Cloudinary nem logs de execução completos. As afirmações sobre esses componentes precisam de validação na origem.
+- Não foram fornecidos código do plugin WordPress, Workers, Core Storage, integração R2 nem logs de execução completos. As afirmações sobre esses componentes precisam de validação na origem. O subfluxo Cloudinary foi fornecido depois; usa `public_id` derivado do SHA-256 e `overwrite=false`, sem consulta prévia do asset.
 
 ## Ordem de trabalho
 
