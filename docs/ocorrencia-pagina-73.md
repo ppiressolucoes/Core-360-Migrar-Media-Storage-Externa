@@ -8,9 +8,9 @@ O resultado funcional de `SP_WP_conclui_migracao_featured_lote` retornou a migra
 
 `SP | Fecha Checkpoint` retornou `AGUARDANDO`, `total_candidatos = 6`, `total_resolvidos = 1`, `pagina_atual = 73`, `ultimo_post_id = 6500`. Esse é o estado esperado após concluir apenas a 457. O item separado `affectedRows = 9` também é metadado do driver, não indica nove migrations resolvidas. A página só poderá avançar após resolver os outros cinco candidatos.
 
-Para concluir a página, verificar o estado atual de 458–462 e reconciliar possíveis assets Cloudinary anteriores. Para cada item sem asset, reclassificar `PROCESSING` em `ERROR` com guarda de ID, par WordPress e ausência de registro Cloudinary; depois executar o PAI manualmente com a agenda pausada. O primeiro lote parcial deve manter o checkpoint `AGUARDANDO`; somente quando os seis candidatos estiverem `MIGRATED` ou `SKIPPED` a procedure poderá avançar a página. Conferir o checkpoint e a notificação antes de reativar a agenda.
+O Workbench mostrou `UPDATE ... 5 row(s) affected`, `COMMIT` e uma consulta posterior com **458–462 em `ERROR`**, sem URL Cloudinary nem mídia virtual. A liberação no banco está concluída; não repetir o `UPDATE`. A verificação de assets Cloudinary anteriores não foi informada. O próximo passo é executar o PAI manualmente com a agenda pausada; se o upload acusar asset existente, interromper e reconciliar esse item. O primeiro lote parcial deve manter o checkpoint `AGUARDANDO`; somente quando os seis candidatos estiverem `MIGRATED` ou `SKIPPED` a procedure poderá avançar a página. Conferir o checkpoint e a notificação antes de reativar a agenda.
 
-Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar `START TRANSACTION`, `UPDATE` e `SELECT` juntos na mesma conexão. No painel **Action Output** do Workbench, confirmar que o `UPDATE` afetou cinco linhas e que a consulta mostra as cinco em `ERROR`; só então `COMMIT` na mesma conexão. Se a contagem ou o estado divergir, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
+O SQL abaixo registra o bloco aplicado pelo usuário às migrations 458–462. **Não executar novamente.** Este repositório não executou comandos no banco.
 
 ```sql
 START TRANSACTION;
@@ -113,7 +113,7 @@ Antes de liberar uma migration, comparar o código do node `SHA-256 Featured IMG
 
 A 457 foi liberada de `PROCESSING` para `ERROR`, reservada novamente e concluída como `MIGRATED`. O SQL usado nesse diagnóstico não deve ser repetido para a 457. O bloco atual para as migrations 458–462 está no início deste documento e exige confirmação prévia dos assets Cloudinary.
 
-Na tentativa seguinte, o **Action Output** do Workbench informou `UPDATE ... 5 row(s) affected`, mas `SET @linhas_liberadas := ROW_COUNT()` seguido de `SELECT` mostrou `0`. Portanto, o `0` dessa variável não deve ser usado para concluir que o `UPDATE` falhou, nem para repetir a alteração. A evidência da operação é o resultado do próprio `UPDATE`, combinado com a leitura das cinco linhas. Ainda não foi informado se houve `COMMIT` ou `ROLLBACK` dessa transação; conferir o estado em outra conexão antes de nova execução do PAI.
+Na tentativa seguinte, o **Action Output** do Workbench informou `UPDATE ... 5 row(s) affected`, mas `SET @linhas_liberadas := ROW_COUNT()` seguido de `SELECT` mostrou `0`. Portanto, o `0` dessa variável não deve ser usado para concluir que o `UPDATE` falhou, nem para repetir a alteração. A consulta posterior ao `COMMIT` confirmou as cinco em `ERROR`.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
