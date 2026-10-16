@@ -78,7 +78,7 @@ Antes de liberar uma migration, comparar o código do node `SHA-256 Featured IMG
 4. Com o item isolado e o fluxo corrigido, executar manualmente, anotar ID da execução, último node executado, erro sanitizado e outputs funcionais de reserva, upload, registro, associação e checkpoint antes da limpeza do histórico. Como os outros cinco seguem `PROCESSING`, é esperado que o checkpoint continue `AGUARDANDO` mesmo que esse item seja concluído. Não interpretar isso como falha do item nem como página concluída.
 5. Reconciliar os cinco restantes pelo mesmo método; depois conferir estados finais e executar `SP_WP_fecha_checkpoint_featured` pelo caminho normal. Só reativar a agenda após um lote completo verificado. Verificar o envio de e-mail antes de repetir qualquer trecho de notificação.
 
-Para o item que **comprovadamente não possui asset**, esta é uma forma de liberar a reserva com guarda de identidade e estado. Executar a transação apenas depois das verificações acima, substituindo os três IDs pelo item escolhido. Confirmar `ROW_COUNT() = 1` antes de `COMMIT`; caso contrário, `ROLLBACK` e nova investigação. Não alterar `WP_migracao_checkpoint` diretamente.
+Para o item que **comprovadamente não possui asset**, esta é uma forma de liberar a reserva com guarda de identidade e estado. Executar a transação apenas depois das verificações acima, substituindo os três IDs pelo item escolhido. Executar o bloco inteiro na **mesma conexão**; no MySQL Workbench, uma seleção de texto executa apenas o trecho selecionado. `ROW_COUNT()` reflete somente o comando imediatamente anterior na conexão: executá-lo sozinho depois de outra consulta pode mostrar `0` mesmo que o `UPDATE` tenha alterado a linha. Confirmar `linhas_liberadas = 1` antes de `COMMIT`; caso contrário, `ROLLBACK` e nova investigação. Não alterar `WP_migracao_checkpoint` diretamente.
 
 ```sql
 START TRANSACTION;
@@ -94,11 +94,24 @@ WHERE id = 457
   AND wp_media_id_virtual IS NULL
   AND cloudinary_url IS NULL;
 
-SELECT ROW_COUNT() AS linhas_liberadas;
+SET @linhas_liberadas := ROW_COUNT();
+SELECT @linhas_liberadas AS linhas_liberadas;
 -- COMMIT somente se linhas_liberadas = 1; senão ROLLBACK.
 ```
 
 Esse `UPDATE` é um roteiro de operação e **não foi executado**. A consulta externa de asset não pode ser substituída pela ausência de `cloudinary_url` no banco.
+
+Se o Workbench mostrar `0` após executar apenas `SELECT ROW_COUNT()`, não repetir o `UPDATE` com base nisso. Primeiro consultar o registro na mesma sessão:
+
+```sql
+SELECT id, post_id, wp_media_id, status, sha256,
+       cloudinary_public_id, cloudinary_url, wp_media_id_virtual,
+       error_message, updated_at
+FROM WP_migracao_featured
+WHERE id = 457;
+```
+
+Se houver transação aberta e o asset ainda não tiver sido verificado, executar `ROLLBACK` nessa conexão. A consulta e o rollback permitem distinguir um comando que não rodou de uma alteração ainda não confirmada.
 
 | Estado encontrado | Próxima verificação |
 | --- | --- |
