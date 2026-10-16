@@ -1,5 +1,40 @@
 # Agendamento Featured: página 73 aguardando
 
+## Retomada observada em 16/10/2026
+
+O usuário atualizou o node `SHA-256 Featured IMG` no n8n e reclassificou a migration 457 como `ERROR`. Uma consulta confirmou a 457 em `ERROR` e as migrations 458–462 ainda em `PROCESSING`, sem URL Cloudinary ou mídia virtual. Na execução manual seguinte, `SP | Reserva Lote` retornou **somente a 457**, agora `PROCESSING`, com seis candidatos na página 73.
+
+O resultado funcional de `SP_WP_conclui_migracao_featured_lote` retornou a migration **457**, post **6514**, mídia original **6519**, mídia virtual **89007**, status **`MIGRATED`** e URL Cloudinary com public ID `pel/featured/d5c5c9184de49f5103723a4f4bb10a3b4f64d201a4fbc01bdd367d5d5e87ddc1`. `migrated_at` foi informado como `2026-10-16 18:14:19`, sem fuso horário identificado. O item separado `affectedRows = 3` é metadado do driver, não indica três migrations concluídas. O usuário informou que o fluxo terminou; o retorno de checkpoint dessa execução ainda não foi fornecido.
+
+Para concluir a página, verificar o estado atual de 458–462 e reconciliar possíveis assets Cloudinary anteriores. Para cada item sem asset, reclassificar `PROCESSING` em `ERROR` com guarda de ID, par WordPress e ausência de registro Cloudinary; depois executar o PAI manualmente com a agenda pausada. O primeiro lote parcial deve manter o checkpoint `AGUARDANDO`; somente quando os seis candidatos estiverem `MIGRATED` ou `SKIPPED` a procedure poderá avançar a página. Conferir o checkpoint e a notificação antes de reativar a agenda.
+
+Se **todos os cinco assets foram confirmados ausentes**, o SQL abaixo permite liberar as cinco linhas de uma vez. Executar o bloco inteiro na mesma conexão e confirmar `linhas_liberadas = 5` antes de `COMMIT`; caso contrário, `ROLLBACK`. Se algum asset existir ou não puder ser verificado, tratar aquele item separadamente e ajustar a lista e a contagem esperada. O SQL abaixo não foi executado por este repositório.
+
+```sql
+START TRANSACTION;
+
+UPDATE WP_migracao_featured
+SET status = 'ERROR',
+    error_message = 'RETRY_DIAGNOSTICO_ASSET_AUSENTE',
+    updated_at = CURRENT_TIMESTAMP
+WHERE (id, post_id, wp_media_id) IN (
+    (458, 6522, 6534),
+    (459, 6537, 6549),
+    (460, 6555, 6561),
+    (461, 6562, 6566),
+    (462, 6589, 6592)
+)
+  AND status = 'PROCESSING'
+  AND sha256 IS NULL
+  AND cloudinary_public_id IS NULL
+  AND cloudinary_url IS NULL
+  AND wp_media_id_virtual IS NULL;
+
+SET @linhas_liberadas := ROW_COUNT();
+SELECT @linhas_liberadas AS linhas_liberadas;
+-- COMMIT somente se linhas_liberadas = 5; senão ROLLBACK.
+```
+
 ## Observação recebida
 
 O gatilho `Start Agenda` executou o PAI e chegou a `SP | Reserva Lote`. `Normaliza | Lote Reservado` produziu `SEM_CANDIDATOS_ELEGIVEIS`. A chamada de `SP_WP_fecha_checkpoint_featured` recebeu seis candidatos e retornou `AGUARDANDO`, `total_resolvidos = 0`, `pagina_atual = 73`, `ultimo_post_id = 6500`. O item separado com `fieldCount`/`affectedRows` é metadado do driver MySQL; `affectedRows = 9` não significa nove migrations concluídas.
@@ -99,7 +134,7 @@ SELECT @linhas_liberadas AS linhas_liberadas;
 -- COMMIT somente se linhas_liberadas = 1; senão ROLLBACK.
 ```
 
-Esse `UPDATE` é um roteiro de operação e **não foi executado**. A consulta externa de asset não pode ser substituída pela ausência de `cloudinary_url` no banco.
+O usuário informou que o SQL de liberação da 457 foi executado no banco; este repositório não executou comandos no banco. A consulta externa de asset não pode ser substituída pela ausência de `cloudinary_url` na tabela.
 
 Se o Workbench mostrar `0` após executar apenas `SELECT ROW_COUNT()`, não repetir o `UPDATE` com base nisso. Primeiro consultar o registro na mesma sessão:
 
@@ -127,4 +162,4 @@ Se houver transação aberta e o asset ainda não tiver sido verificado, executa
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade está confirmada (`PROCESSING` nos seis registros). A nova execução ainda não foi feita; a retomada segura depende da reconciliação dos assets e da captura imediata do novo resultado no n8n.
+Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade inicial está confirmada (`PROCESSING` nos seis registros). A migration 457 foi retomada e o resultado funcional de conclusão foi `MIGRATED`; restam 458–462 e a verificação do checkpoint da página 73.
