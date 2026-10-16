@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst reservados = [];\n\n// Contexto da página que originou esta reserva\nconst contextoPagina = $('Monta | Candidatos [5]').first().json;\n\nfunction procurar(value) {\n  if (Array.isArray(value)) {\n    for (const v of value) procurar(v);\n    return;\n  }\n\n  if (\n    value &&\n    typeof value === 'object' &&\n    value.post_id !== undefined &&\n    value.wp_media_id !== undefined &&\n    value.migration_id !== undefined\n  ) {\n    reservados.push(value);\n  }\n}\n\nfor (const item of items) {\n  procurar(item.json);\n}\n\n/*\n  Nenhuma migração elegível.\n  Não é erro: encerra o ciclo normalmente.\n*/\nif (reservados.length === 0) {\n  return [{\n    json: {\n      tem_reserva: false,\n      total_reservado: 0,\n      etapa: 'SEM_CANDIDATOS_ELEGIVEIS',\n\n      // Contexto da página permanece disponível\n      pagina_processada: Number(contextoPagina.pagina_processada),\n      per_page: Number(contextoPagina.per_page),\n      ultimo_post_pagina: Number(contextoPagina.ultimo_post_pagina),\n      total_candidatos: Number(contextoPagina.total_candidatos)\n    }\n  }];\n}\n\nreturn reservados.map(row => ({\n  json: {\n    tem_reserva: true,\n    total_reservado: reservados.length,\n\n    migration_id: Number(row.migration_id),\n    ordem: Number(row.ordem),\n    post_id: Number(row.post_id),\n    wp_media_id: Number(row.wp_media_id),\n\n    status: row.status,\n    created_at: row.created_at ?? null,\n    updated_at: row.updated_at ?? null,\n\n    // Contexto da página\n    pagina_processada: Number(contextoPagina.pagina_processada),\n    per_page: Number(contextoPagina.per_page),\n    ultimo_post_pagina: Number(contextoPagina.ultimo_post_pagina),\n    total_candidatos: Number(contextoPagina.total_candidatos)\n  }\n}));"
+        "jsCode": "const contexto = $('Monta | Candidatos [5]').first().json;\nif (!Array.isArray(contexto.candidatos) || contexto.candidatos.length === 0) {\n  throw new Error('Reserva recebeu página sem candidatos; checkpoint não pode ser fechado.');\n}\nconst id = (value, field) => {\n  const number = Number(value);\n  if (!Number.isSafeInteger(number) || number <= 0) throw new Error(`${field} inválido: ${value}`);\n  return number;\n};\nconst esperados = new Set(contexto.candidatos.map(c =>\n  `${id(c.post_id, 'post_id candidato')}:${id(c.wp_media_id, 'wp_media_id candidato')}`\n));\nconst metadata = new Set(['fieldCount', 'affectedRows', 'insertId', 'info', 'serverStatus', 'warningStatus', 'changedRows']);\nconst wrappers = ['json', 'rows', 'result', 'results', 'data', 'resultset', 'resultsets'];\nconst rows = [];\nfunction collect(value, depth = 0) {\n  if (depth > 10) throw new Error('Resultset da reserva aninhado além do limite esperado');\n  if (Array.isArray(value)) { value.forEach(v => collect(v, depth + 1)); return; }\n  if (!value || typeof value !== 'object') throw new Error('Retorno da reserva em formato inválido');\n  const keys = Object.keys(value);\n  if (keys.some(k => ['migration_id', 'post_id', 'wp_media_id', 'status'].includes(k))) {\n    rows.push(value);\n    return;\n  }\n  const nested = [...wrappers, ...keys.filter(k => /^\\d+$/.test(k))].filter(k => k in value);\n  if (nested.length) { nested.forEach(k => collect(value[k], depth + 1)); return; }\n  if (keys.length && !keys.every(k => metadata.has(k))) {\n    throw new Error(`Retorno da reserva desconhecido: ${keys.join(', ')}`);\n  }\n}\n$input.all().forEach(item => collect(item.json));\nconst reservados = new Map();\nfor (const row of rows) {\n  const migrationId = id(row.migration_id, 'migration_id');\n  const postId = id(row.post_id, 'post_id');\n  const mediaId = id(row.wp_media_id, 'wp_media_id');\n  const ordem = id(row.ordem, 'ordem');\n  if (row.status !== 'PROCESSING') throw new Error(`Migration ${migrationId} retornou status ${row.status}`);\n  if (!esperados.has(`${postId}:${mediaId}`)) throw new Error(`Migration ${migrationId} fora dos candidatos da página`);\n  const previous = reservados.get(migrationId);\n  if (previous && (previous.post_id !== postId || previous.wp_media_id !== mediaId)) {\n    throw new Error(`Migration ${migrationId} retornou contexto conflitante`);\n  }\n  reservados.set(migrationId, {migration_id: migrationId, ordem, post_id: postId, wp_media_id: mediaId,\n    status: row.status, created_at: row.created_at ?? null, updated_at: row.updated_at ?? null});\n}\nconst page = {\n  pagina_processada: id(contexto.pagina_processada, 'pagina_processada'),\n  per_page: id(contexto.per_page, 'per_page'),\n  ultimo_post_pagina: id(contexto.ultimo_post_pagina, 'ultimo_post_pagina'),\n  total_candidatos: contexto.candidatos.length\n};\nif (reservados.size === 0) {\n  // Só o resultado do checkpoint determina se a página foi resolvida.\n  return [{json: {tem_reserva: false, total_reservado: 0,\n    etapa: 'SEM_CANDIDATOS_ELEGIVEIS', ...page}}];\n}\nreturn [...reservados.values()].sort((a, b) => a.ordem - b.ordem).map(row => ({\n  json: {tem_reserva: true, total_reservado: reservados.size, ...row, ...page}\n}));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -488,6 +488,19 @@
       "id": "6c6e9526-2f0b-4be6-a30f-587ecad2f7eb",
       "name": "Prepara | Fecha Checkpoint",
       "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Executado depois de SP | Fecha Checkpoint no PAI. Não altera o banco.\nconst rows = [];\nconst wrappers = ['json', 'rows', 'result', 'results', 'data', 'resultset', 'resultsets'];\nfunction collect(value, depth = 0) {\n  if (depth > 10) throw new Error('Resultado do checkpoint aninhado além do limite esperado');\n  if (Array.isArray(value)) { value.forEach(v => collect(v, depth + 1)); return; }\n  if (!value || typeof value !== 'object') return;\n  if (Object.prototype.hasOwnProperty.call(value, 'resultado')) { rows.push(value); return; }\n  const numericKeys = Object.keys(value).filter(k => /^\\d+$/.test(k));\n  [...wrappers, ...numericKeys].filter(k => k in value).forEach(k => collect(value[k], depth + 1));\n}\n$input.all().forEach(item => collect(item.json));\nif (rows.length !== 1) throw new Error(`Checkpoint retornou ${rows.length} resultados funcionais; esperado 1.`);\nconst row = rows[0];\nconst count = (value, field) => {\n  const number = Number(value);\n  if (!Number.isSafeInteger(number) || number < 0) throw new Error(`${field} inválido: ${value}`);\n  return number;\n};\nconst total = count(row.total_candidatos, 'total_candidatos');\nconst resolvidos = count(row.total_resolvidos, 'total_resolvidos');\nconst pagina = count(row.pagina_atual, 'pagina_atual');\nif (total === 0 || resolvidos > total) throw new Error('Contagem inválida no checkpoint Featured');\nconst semReserva = $('Normaliza | Lote Reservado').first().json.tem_reserva === false;\nif (row.resultado === 'AGUARDANDO' && semReserva) {\n  throw new Error(`Página Featured ${pagina} bloqueada: 0 reservas e ${resolvidos}/${total} candidatos resolvidos. Inspecione o retorno de SP | Reserva Lote e os estados em WP_migracao_featured; não avance o checkpoint manualmente.`);\n}\nif (!['AGUARDANDO', 'AVANCADO', 'JA_AVANCADO'].includes(row.resultado)) {\n  throw new Error(`Resultado de checkpoint desconhecido: ${row.resultado}`);\n}\nif (row.resultado !== 'AGUARDANDO' && resolvidos !== total) {\n  throw new Error(`Checkpoint ${row.resultado} inconsistente: ${resolvidos}/${total} resolvidos`);\n}\nreturn [{json: {resultado: row.resultado, total_candidatos: total,\n  total_resolvidos: resolvidos, pagina_atual: pagina, ultimo_post_id: row.ultimo_post_id ?? null,\n  sem_reserva: semReserva}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        176
+      ],
+      "id": "ae03bb06-4231-415d-b9f9-e19612124e7e",
+      "name": "Valida | Checkpoint PAI"
     }
   ],
   "connections": {
@@ -759,6 +772,17 @@
         [
           {
             "node": "SP | Fecha Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Fecha Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Valida | Checkpoint PAI",
             "type": "main",
             "index": 0
           }
