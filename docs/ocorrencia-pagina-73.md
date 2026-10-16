@@ -8,13 +8,15 @@ O checkpoint não avançou, conforme o contrato da procedure. A saída completa 
 
 Pelo SQL de referência e pelo limite positivo exigido em `Monta | Candidatos [5]`, cada candidato válido deixou de satisfazer pelo menos uma condição de reserva: já tem migration em `PROCESSING`/`MIGRATED`/`SKIPPED`, ou aparece como mídia virtual do mesmo post. Ainda faltam as linhas de `WP_migracao_featured` para identificar qual condição se aplica a cada um e conferir que a procedure implantada corresponde à referência. O resultado `AGUARDANDO` com 0/6 resolvidos exige essa conciliação antes de qualquer retry.
 
+O retorno de `Busca Posts` confirmou os seis pares da página: `(6514, 6519)`, `(6522, 6534)`, `(6537, 6549)`, `(6555, 6561)`, `(6562, 6566)` e `(6589, 6592)`. Esses são IDs do WordPress; o retorno não contém o estado das migrations no banco.
+
 ## Ajuste no export
 
 `Normaliza | Lote Reservado` agora percorre arrays e wrappers conhecidos, ignora metadados, valida IDs/status `PROCESSING` e recusa retornos desconhecidos. Ausência real de rows continua seguindo o caminho sem reserva. O novo `Valida | Checkpoint PAI` lê o resultado funcional da procedure após o fechamento: quando não houve reserva e o checkpoint retorna `AGUARDANDO`, a execução termina com erro explícito de página bloqueada. Isso evita que o agendamento pareça ter concluído a migração. A validação não reprocessa candidatos nem altera o checkpoint.
 
 ## Diagnóstico somente leitura
 
-Para os seis pares de `Monta | Candidatos [5]`, usar o JSON completo como parâmetro `?` na consulta abaixo e comparar o resultado com a página do WordPress:
+Executar a consulta abaixo em modo somente leitura para obter o estado de cada par, inclusive se ainda não houver linha na tabela:
 
 ```sql
 SELECT
@@ -31,11 +33,13 @@ SELECT
         WHERE mv.post_id = c.post_id
           AND mv.wp_media_id_virtual = c.wp_media_id
     ) AS ja_e_midia_virtual
-FROM JSON_TABLE(
-    ?, '$[*]' COLUMNS (
-        post_id BIGINT PATH '$.post_id',
-        wp_media_id BIGINT PATH '$.wp_media_id'
-    )
+FROM (
+    SELECT 6514 AS post_id, 6519 AS wp_media_id
+    UNION ALL SELECT 6522, 6534
+    UNION ALL SELECT 6537, 6549
+    UNION ALL SELECT 6555, 6561
+    UNION ALL SELECT 6562, 6566
+    UNION ALL SELECT 6589, 6592
 ) AS c
 LEFT JOIN WP_migracao_featured m
   ON m.post_id = c.post_id

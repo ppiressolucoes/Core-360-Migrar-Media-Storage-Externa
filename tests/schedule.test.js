@@ -9,8 +9,15 @@ const workflow = JSON.parse(fs.readFileSync(
 ));
 const code = name => workflow.nodes.find(n => n.name === name).parameters.jsCode;
 const page = {
-  candidatos: [{post_id: 6514, wp_media_id: 6519}, {post_id: 6522, wp_media_id: 6534}],
-  pagina_processada: 73, per_page: 6, ultimo_post_pagina: 6562
+  candidatos: [
+    {post_id: 6514, wp_media_id: 6519},
+    {post_id: 6522, wp_media_id: 6534},
+    {post_id: 6537, wp_media_id: 6549},
+    {post_id: 6555, wp_media_id: 6561},
+    {post_id: 6562, wp_media_id: 6566},
+    {post_id: 6589, wp_media_id: 6592}
+  ],
+  pagina_processada: 73, per_page: 6, ultimo_post_pagina: 6589
 };
 const reserved = (migrationId, postId, mediaId, ordem) => ({
   migration_id: migrationId, post_id: postId, wp_media_id: mediaId,
@@ -41,7 +48,7 @@ test('reserva aceita resultset aninhado e ignora metadados MySQL', () => {
 test('reserva vazia produz um marcador, sem presumir página resolvida', () => {
   const output = run('Normaliza | Lote Reservado', [[], {fieldCount: 0, affectedRows: 6}], page);
   assert.equal(output[0].json.tem_reserva, false);
-  assert.equal(output[0].json.total_candidatos, 2);
+  assert.equal(output[0].json.total_candidatos, 6);
 });
 
 test('reserva aceita wrapper conhecido e recusa retorno ou candidato incompatível', () => {
