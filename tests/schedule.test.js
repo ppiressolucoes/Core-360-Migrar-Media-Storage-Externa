@@ -39,7 +39,7 @@ test('reserva aceita resultset aninhado e ignora metadados MySQL', () => {
 });
 
 test('reserva vazia produz um marcador, sem presumir página resolvida', () => {
-  const output = run('Normaliza | Lote Reservado', [[], {fieldCount: 0}], page);
+  const output = run('Normaliza | Lote Reservado', [[], {fieldCount: 0, affectedRows: 6}], page);
   assert.equal(output[0].json.tem_reserva, false);
   assert.equal(output[0].json.total_candidatos, 2);
 });

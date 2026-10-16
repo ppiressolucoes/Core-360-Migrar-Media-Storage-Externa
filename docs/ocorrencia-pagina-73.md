@@ -4,10 +4,9 @@
 
 O gatilho `Start Agenda` executou o PAI e chegou a `SP | Reserva Lote`. `Normaliza | Lote Reservado` produziu `SEM_CANDIDATOS_ELEGIVEIS`. A chamada de `SP_WP_fecha_checkpoint_featured` recebeu seis candidatos e retornou `AGUARDANDO`, `total_resolvidos = 0`, `pagina_atual = 73`, `ultimo_post_id = 6500`. O item separado com `fieldCount`/`affectedRows` é metadado do driver MySQL; `affectedRows = 9` não significa nove migrations concluídas.
 
-O checkpoint não avançou, conforme o contrato da procedure. Ainda não foram fornecidos o JSON de saída de `SP | Reserva Lote` nem as linhas correspondentes em `WP_migracao_featured`. Esses dados distinguem duas causas possíveis:
+O checkpoint não avançou, conforme o contrato da procedure. A saída completa de `SP | Reserva Lote` foi fornecida depois: `[[], {"fieldCount": 0, "affectedRows": 6, ...}]`. O resultset está realmente vazio; não houve row funcional que o normalizador deixou de reconhecer. `affectedRows = 6` é metadado do driver, não prova que seis migrations foram reservadas.
 
-1. A reserva retornou rows válidas em um wrapper que o normalizador anterior não percorria. Nesse caso, a classificação `SEM_CANDIDATOS_ELEGIVEIS` foi incorreta.
-2. A reserva retornou um resultset vazio. A procedure exclui candidatos em `PROCESSING`, `MIGRATED` ou `SKIPPED` e candidatos que já aparecem como mídia virtual do mesmo post. Se o checkpoint mostra 0/6 resolvidos, é essencial identificar o estado de cada candidato antes de qualquer retry.
+Pelo SQL de referência e pelo limite positivo exigido em `Monta | Candidatos [5]`, cada candidato válido deixou de satisfazer pelo menos uma condição de reserva: já tem migration em `PROCESSING`/`MIGRATED`/`SKIPPED`, ou aparece como mídia virtual do mesmo post. Ainda faltam as linhas de `WP_migracao_featured` para identificar qual condição se aplica a cada um e conferir que a procedure implantada corresponde à referência. O resultado `AGUARDANDO` com 0/6 resolvidos exige essa conciliação antes de qualquer retry.
 
 ## Ajuste no export
 
@@ -15,7 +14,7 @@ O checkpoint não avançou, conforme o contrato da procedure. Ainda não foram f
 
 ## Diagnóstico somente leitura
 
-Consultar o output exato de `SP | Reserva Lote`. Para os seis pares de `Monta | Candidatos [5]`, usar o JSON completo como parâmetro `?` na consulta abaixo e comparar o resultado com a página do WordPress:
+Para os seis pares de `Monta | Candidatos [5]`, usar o JSON completo como parâmetro `?` na consulta abaixo e comparar o resultado com a página do WordPress:
 
 ```sql
 SELECT
@@ -60,4 +59,4 @@ Conferir também a linha `FEATURED` em `WP_migracao_checkpoint` e as execuções
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado e formatos representativos de reserva. A causa concreta da falta de reservas e o funcionamento do agendamento real ainda dependem do output da reserva e dos estados do banco.
+Os testes locais cobrem o JSON de checkpoint enviado e o resultset vazio da reserva. A causa concreta da inelegibilidade e a recuperação do agendamento ainda dependem dos estados dos seis candidatos no banco.
