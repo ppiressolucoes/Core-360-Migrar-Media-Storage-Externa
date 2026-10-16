@@ -64,6 +64,10 @@ O usuário confirmou que o agendamento está pausado e que o histórico anterior
 
 O node `SHA-256 Featured IMG` do export recebido referenciava `items.length` sem definir `items` no modo padrão `runOnceForAllItems` do Code node. Isso produziria `ReferenceError` quando a execução chegasse a esse ponto. O export versionado declara `const items = $input.all();`; o teste local confirmou o SHA-256 de dois conteúdos conhecidos e a preservação do binário. É um defeito concreto no subfluxo recebido, mas não há log para provar que foi o último node das execuções das 03:00 e 04:00.
 
+A nova captura da tabela mostra que as migrations 447–456 estão `MIGRATED` e que 457–462 seguem `PROCESSING`, com `sha256`, `cloudinary_public_id`, `cloudinary_url` e `wp_media_id_virtual` nulos. Isso confirma que o registro de upload não ocorreu nessas seis linhas; não determina se houve POST externo antes da interrupção.
+
+Antes de liberar uma migration, comparar o código do node `SHA-256 Featured IMG` da versão **ativa** do n8n com o export recebido. Se ele também usar `items` sem `const items = $input.all();`, esse erro pode ser reproduzido com uma imagem de teste executando apenas até o node SHA-256, sem acionar `Upload Cloudinary featured IMG` nem alterar a tabela. Capturar o erro sanitizado e o ID da execução imediatamente. Esse teste localiza um defeito concreto sem precisar mudar o checkpoint ou o estado das seis migrations.
+
 `SP_WP_recupera_migracao_featured_processing` já lista as migrations `PROCESSING` sem mídia virtual, mas nenhum dos cinco exports a chama. Recuperar essas linhas exige um caminho controlado de reconciliação; a procedure de reserva atual só aceita linhas novas, `PENDING` ou `ERROR`.
 
 ## Nova execução diagnóstica de um item
