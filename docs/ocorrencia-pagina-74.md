@@ -79,6 +79,28 @@ ORDER BY id;
 
 O PAI versionado chama `SUB | Storage Media External`, preserva `storage_provider`, `storage_key`, `storage_url` e metadados por item; `Monta | Lote Uploads` reconhece também os três outputs antigos pela URL para permitir retomada da execução salva. A nova procedure `SP_WP_registra_storage_lote` grava o provider e a URL canônica; as procedures de associação e conclusão usam `storage_url`. O subfluxo WP envia `provider` ao endpoint `/m360/v1/external-featured-media`; a exclusão original só é liberada quando a URL da mídia virtual realmente servida pelo WordPress coincide com a URL canônica, inclusive o host.
 
-A implantação depende de conferir o contrato do endpoint WordPress para `provider`, `secure_url`, `public_id` e deduplicação por SHA. Esse código não foi fornecido e os testes locais não provam o comportamento do WP. Se o endpoint ignorar `provider` ou reaproveitar attachment de outro repositório, a validação de URL deve bloquear a exclusão original. Não publicar o novo PAI isoladamente: instalar as colunas e procedures de `sql/deploy/` primeiro, atualizar os três workflows em conjunto e configurar a credencial de proxy no subfluxo Storage. O export recebido tinha uma chave literal no cabeçalho; a cópia versionada foi saneada. Trocar essa chave no serviço e usar credencial gerenciada do n8n.
+### Etapa imediata: montar e registrar o lote
 
-Depois da implantação e verificação do endpoint, retomar **a partir dos três resultados de upload já capturados**, na montagem do lote, preservando o contexto da página 74. Confirmar que 469–471 passam por registro, associação WP, validação da URL, auditoria e conclusão. O checkpoint deve avançar apenas quando todos os seis candidatos estiverem resolvidos. Antes de reativar a agenda, confirmar `total_resolvidos = 6`, `pagina_atual = 75` e `ultimo_post_id = 6642`.
+O PAI publicado **ainda não chegou a `SP | Registra Cloudinary Lote`** nesta tentativa. O contrato WordPress não bloqueia a verificação isolada de montagem e registro. Com a agenda pausada:
+
+1. Consultar o estado atual de 469–471 no banco. O registro controlado exige os três em `PROCESSING`, sem outra URL de storage já gravada. Se as colunas `storage_*` ainda não existem, usar a consulta anterior; após o DDL, incluir `storage_provider`, `storage_key` e `storage_url`.
+2. Aplicar `sql/deploy/01_storage_columns.sql` e `sql/deploy/02_SP_WP_registra_storage_lote.sql` em ambiente controlado. O DDL é de execução única. O novo procedimento requer `PROCESSING` e bloqueia um storage diferente já registrado.
+3. No PAI, atualizar apenas o código de `Monta | Lote Uploads` com `workflows/nodes/monta-lote-uploads.js` e alterar a query do node de registro para `CALL SP_WP_registra_storage_lote(...)`, mantendo o JSON do lote como argumento. Os três outputs antigos ainda trazem campos chamados `cloudinary_*`; o novo `Monta` identifica a 469 como R2 pela URL e emite `storage_*` sem marcar R2 como Cloudinary.
+4. Executar **somente** `Monta | Lote Uploads` com os três itens já capturados. Esperado: `total_uploads = 3`, providers `[cloudflare_r2, cloudinary, cloudinary]`, IDs `[469,470,471]`. Executar então **somente** o node de registro com essa saída, sem disparar novamente o Loop/upload nem a associação WP. Esperado: `STORAGE_REGISTRADO`, `total_atualizados = 3`.
+5. Conferir as três linhas no banco antes de prosseguir:
+
+```sql
+SELECT id, status, sha256, storage_provider, storage_key, storage_url,
+       cloudinary_public_id, cloudinary_url, wp_media_id_virtual
+FROM WP_migracao_featured
+WHERE id IN (469, 470, 471)
+ORDER BY id;
+```
+
+Esperado: 469 com `storage_provider = cloudflare_r2`, URL R2 e `cloudinary_url IS NULL`; 470–471 com `storage_provider = cloudinary` e URL Cloudinary. Os três permanecem `PROCESSING` até a associação e conclusão. Se a execução salva não permitir executar os nodes isoladamente, não reiniciar o PAI inteiro: reconstruir a entrada de `Monta` com os três outputs preservados e o contexto da página 74.
+
+### Etapa seguinte: WordPress e conclusão
+
+Antes de avançar do registro para o subfluxo WP, conferir o contrato do endpoint `/m360/v1/external-featured-media` para `provider`, `secure_url`, `public_id` e deduplicação por SHA. Esse código não foi fornecido e os testes locais não provam o comportamento do WP. Instalar as procedures de associação e conclusão (`sql/deploy/03` e `04`) junto dos exports atualizados desses subfluxos. Se o endpoint reaproveitar attachment de outro repositório, a validação de URL deve bloquear a exclusão original. Confirmar associação WP, URL pública, auditoria e conclusão antes de avançar o checkpoint. O checkpoint esperado é `total_resolvidos = 6`, `pagina_atual = 75`, `ultimo_post_id = 6642`.
+
+O export recebido do subfluxo Storage tinha uma chave literal no cabeçalho. A cópia versionada foi saneada; trocar a chave no serviço e configurar credencial gerenciada do n8n antes de importar esse export.
