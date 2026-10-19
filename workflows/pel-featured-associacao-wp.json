@@ -253,8 +253,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "CALL SP_WP_registra_associacao_lote(\n  '{{ JSON.stringify([$json]).replace(/'/g, \"''\") }}'\n);",
-        "options": {}
+        "query": "CALL SP_WP_registra_associacao_lote($1);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify([$json])] }}"
+        }
       },
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
