@@ -1,12 +1,21 @@
--- Consulta somente leitura. Confirme primeiro o prefixo das tabelas WordPress.
-SELECT TABLE_NAME
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = DATABASE()
-  AND (TABLE_NAME LIKE '%posts' OR TABLE_NAME LIKE '%postmeta')
-ORDER BY TABLE_NAME;
+-- Execute apenas estas consultas de descoberta e envie os resultados.
+-- O schema/prefixo do WordPress não pode ser inferido de WP_migracao_featured.
+SELECT DATABASE() AS schema_atual;
 
--- Execute este SELECT separadamente quando as duas tabelas acima existirem.
--- Sem linhas: nenhum attachment com esses SHA foi encontrado nessas tabelas.
+SELECT TABLE_SCHEMA, TABLE_NAME
+FROM information_schema.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+  AND (
+    LOWER(TABLE_NAME) LIKE '%posts'
+    OR LOWER(TABLE_NAME) LIKE '%postmeta'
+    OR LOWER(TABLE_NAME) = 'wp_migracao_featured'
+  )
+ORDER BY TABLE_SCHEMA, TABLE_NAME;
+
+-- MODELO: não executar até identificar o schema e prefixo corretos acima.
+-- Troque todas as referências WP_posts/WP_postmeta pelos nomes reais,
+-- qualificados pelo schema quando necessário; depois remova /* e */.
+/*
 SELECT
     p.ID AS attachment_id,
     p.post_status,
@@ -40,3 +49,4 @@ WHERE s.meta_key = '_m360_external_media_sha256'
     'bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080'
   )
 ORDER BY s.meta_value, p.ID;
+*/
