@@ -1,0 +1,33 @@
+[
+  {
+    "json": {
+      "migration_id": 471,
+      "post_id": 6642,
+      "wp_media_id_original": 6643,
+      "original_url": "https://energialimpa.live/wp-content/uploads/2024/03/hqdefault-1.jpg",
+      "sha256": "bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080",
+      "storage_provider": "cloudinary",
+      "storage_key": "pel/featured/bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080",
+      "storage_url": "https://res.cloudinary.com/nksstmuv/image/upload/v1792420837/pel/featured/bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080.jpg",
+      "storage_asset_id": "b9901c588f1116b241f964a77319eba9",
+      "storage_mime_type": "image/jpeg",
+      "cloudinary_cloud_name": "nksstmuv",
+      "cloudinary_public_id": "pel/featured/bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080",
+      "cloudinary_url": "https://res.cloudinary.com/nksstmuv/image/upload/v1792420837/pel/featured/bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080.jpg",
+      "cloudinary_asset_id": "b9901c588f1116b241f964a77319eba9",
+      "width": 480,
+      "height": 360,
+      "format": "jpg",
+      "pagina_processada": 74,
+      "ultimo_post_pagina": 6642,
+      "candidatos_pagina": [
+        {"post_id": 6593, "wp_media_id": 89027},
+        {"post_id": 6600, "wp_media_id": 89028},
+        {"post_id": 6610, "wp_media_id": 89029},
+        {"post_id": 6625, "wp_media_id": 6630},
+        {"post_id": 6633, "wp_media_id": 6639},
+        {"post_id": 6642, "wp_media_id": 6643}
+      ]
+    }
+  }
+]
