@@ -24,6 +24,8 @@ function consolidate(provider, url) {
     secure_url: url, sha256: sha, asset_id: sha, mime_type: 'image/jpeg', width: 840, height: 560}}).json;
 }
 test('Cloudinary e R2 preservam o provider e a URL canônica', () => {
+  assert.equal(workflow.nodes.find(n => n.name === 'Consolida | Resultado Upload').parameters.mode,
+    'runOnceForEachItem');
   const cloudinary = consolidate('cloudinary', cdy);
   const external = consolidate('cloudflare_r2', r2);
   assert.equal(cloudinary.storage_provider, 'cloudinary');
