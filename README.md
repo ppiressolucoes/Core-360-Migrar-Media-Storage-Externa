@@ -7,6 +7,7 @@ Fluxo de migração de midia storage externa do portal Energia Limpa
 - `workflows/nodes/sha-256-featured-img.js`: código completo corrigido do node `SHA-256 Featured IMG`, pronto para colar no editor do n8n.
 - `workflows/nodes/consolida-resultado-upload.js`: código do node `Consolida | Resultado Upload` com validação imediata do host Cloudinary antes de montar o lote.
 - `tests/`: testes locais do node `Monta | Notificação Lote` e do contrato da procedure de erro. Execute com `node --test tests/*.test.js`.
+- `workers/n8n-pel-proxy.js`: código do Worker de proxy WordPress com diagnóstico de redirecionamentos de POST sem reenvio automático do corpo.
 - `sql/reference/`: nove procedures fornecidas como referência, sem `DEFINER` da instância de origem. Não são migrations prontas para aplicar.
 - `docs/diagnostico.md`: mapa dos componentes, evidências, pendências e roteiro de validação controlada.
 - `docs/banco.md`: tabelas e contratos das procedures usados pela migração.
