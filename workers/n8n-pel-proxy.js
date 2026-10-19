@@ -1,4 +1,5 @@
-// Comportamento anterior do proxy, restaurado para os fluxos compartilhados.
+// Referência funcional reconstruída: não é a cópia literal do deployment
+// original de 310 linhas. Para restaurá-lo, use o histórico do Cloudflare.
 // O redirect automático de POST pode falhar se a origem exigir reenviar o corpo.
 export default {
   async fetch(request) {
