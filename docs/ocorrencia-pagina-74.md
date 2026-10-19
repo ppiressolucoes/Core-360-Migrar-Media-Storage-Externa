@@ -12,6 +12,8 @@ O ZIP do plugin WordPress v0.1.9 confirmou que o registro rejeita `asset_id` vaz
 
 O operador confirmou que o banco WordPress e o banco `WP_migracao_featured` são distintos. O erro 1146 ao consultar `u164126954_bNEJI.WP_postmeta` demonstra que aquela referência de tabela não existe nessa conexão; não demonstra ausência de attachment. A consulta de metadados do plugin deve ser executada na conexão do banco WordPress, usando seu schema e prefixo reais, sem JOIN entre os bancos.
 
+O banco WordPress foi identificado como `u164126954_bNEJI`, com as tabelas `wp_posts` e `wp_postmeta` em minúsculas. A consulta em `sql/maintenance/verifica_attachments_470_471.sql` agora usa esses nomes exatos e procura os dois SHA nos metadados do plugin, incluindo os campos legados como fallback.
+
 **As instruções de retomada abaixo registram o diagnóstico anterior e não são executáveis para o estado atual.** Não reenviar o lote 469–471 à procedure: 469 está fora de `PROCESSING` e já possui mídia virtual. O GET confirmou que 469 precisa de associação ao post antes de qualquer exclusão. O backfill em `sql/deploy/01` limita-se a linhas `MIGRATED` Cloudinary identificáveis, deixando 469–471 para reconciliação individual. Manter a agenda pausada.
 
 ## Evidência de 19/10/2026
