@@ -83,7 +83,18 @@ O PAI versionado chama `SUB | Storage Media External`, preserva `storage_provide
 
 O PAI publicado **ainda não chegou a `SP | Registra Cloudinary Lote`** nesta tentativa. O contrato WordPress não bloqueia a verificação isolada de montagem e registro. Com a agenda pausada:
 
-1. Consultar o estado atual de 469–471 no banco. O registro controlado exige os três em `PROCESSING`, sem outra URL de storage já gravada. Se as colunas `storage_*` ainda não existem, usar a consulta anterior; após o DDL, incluir `storage_provider`, `storage_key` e `storage_url`.
+1. Conferir `SELECT DATABASE()` para garantir que a conexão usa o schema de `WP_migracao_featured`. **Antes do DDL, não selecionar colunas `storage_*`: elas ainda não existem e causam erro 1054.** Usar a consulta abaixo. O registro controlado exige os três em `PROCESSING`, sem URL Cloudinary ou mídia virtual já gravada.
+
+```sql
+SELECT DATABASE() AS schema_atual;
+
+SELECT id, post_id, wp_media_id, status, sha256,
+       cloudinary_public_id, cloudinary_url, wp_media_id_virtual, updated_at
+FROM WP_migracao_featured
+WHERE id IN (469, 470, 471)
+ORDER BY id;
+```
+
 2. Aplicar `sql/deploy/01_storage_columns.sql` e `sql/deploy/02_SP_WP_registra_storage_lote.sql` em ambiente controlado. O DDL é de execução única. O novo procedimento requer `PROCESSING` e bloqueia um storage diferente já registrado.
 3. No PAI, atualizar apenas o código de `Monta | Lote Uploads` com `workflows/nodes/monta-lote-uploads.js` e alterar a query do node de registro para `CALL SP_WP_registra_storage_lote(...)`, mantendo o JSON do lote como argumento. Os três outputs antigos ainda trazem campos chamados `cloudinary_*`; o novo `Monta` identifica a 469 como R2 pela URL e emite `storage_*` sem marcar R2 como Cloudinary.
 4. Executar **somente** `Monta | Lote Uploads` com os três itens já capturados. Esperado: `total_uploads = 3`, providers `[cloudflare_r2, cloudinary, cloudinary]`, IDs `[469,470,471]`. Executar então **somente** o node de registro com essa saída, sem disparar novamente o Loop/upload nem a associação WP. Esperado: `STORAGE_REGISTRADO`, `total_atualizados = 3`.
