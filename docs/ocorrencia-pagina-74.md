@@ -1,5 +1,11 @@
 # Agendamento Featured: página 74 aguardando
 
+## Estado atualizado: 19/10/2026
+
+A consulta de produção confirmou que ainda não há colunas `storage_provider`, `storage_key`, `storage_url` nem `storage_asset_id`. A migration 469 está em `ERROR`, com mídia virtual 89239 e URL Cloudinary `https://res.cloudinary.com/yezowpnj/image/upload/v1792420814/pel/featured/936704c6b5e4af2f443761458acf4c686f04f5dd9d24578b72c11387b17a7bcd.jpg`. O erro gravado é o 502 de retransmissão de POST após redirect no proxy compartilhado. Na captura mais recente, 470–471 estão em `PROCESSING`, com URL externa e sem ID virtual. O upload R2 anterior da 469 existe como evento observado, mas não é a URL atualmente gravada no banco.
+
+**As instruções de retomada abaixo registram o diagnóstico anterior e não são executáveis para o estado atual.** Não reenviar o lote 469–471 à procedure: 469 está fora de `PROCESSING` e já possui mídia virtual. Antes de qualquer alteração de estado, consultar `GET /wp-json/wp/v2/media/89239?_fields=id,source_url,post` e `GET /wp-json/wp/v2/posts/6625?_fields=id,featured_media`; comparar a mídia virtual e a associação com a URL Cloudinary gravada. O backfill em `sql/deploy/01` limita-se a linhas `MIGRATED` Cloudinary identificáveis, deixando 469–471 para reconciliação individual. Manter a agenda pausada.
+
 ## Evidência de 19/10/2026
 
 O checkpoint da página 73 avançou: a execução atual iniciou com `pagina_atual = 74` e `ultimo_post_id = 6589`. `Monta | Candidatos [5]` informou seis candidatos para a página 74, com `ultimo_post_pagina = 6642`.
@@ -79,7 +85,7 @@ ORDER BY id;
 
 O PAI versionado chama `SUB | Storage Media External`, preserva `storage_provider`, `storage_key`, `storage_url` e metadados por item; `Monta | Lote Uploads` reconhece também os três outputs antigos pela URL para permitir retomada da execução salva. A nova procedure `SP_WP_registra_storage_lote` grava o provider e a URL canônica; as procedures de associação e conclusão usam `storage_url`. O subfluxo WP envia `provider` ao endpoint `/m360/v1/external-featured-media`; a exclusão original só é liberada quando a URL da mídia virtual realmente servida pelo WordPress coincide com a URL canônica, inclusive o host.
 
-### Etapa imediata: montar e registrar o lote
+### Plano anterior de registro do lote (histórico; não executar)
 
 O PAI publicado **ainda não chegou a `SP | Registra Cloudinary Lote`** nesta tentativa. O contrato WordPress não bloqueia a verificação isolada de montagem e registro. Com a agenda pausada:
 
@@ -114,7 +120,7 @@ ORDER BY id;
 
 Esperado: 469 com `storage_provider = cloudflare_r2`, URL R2 e `cloudinary_url IS NULL`; 470–471 com `storage_provider = cloudinary` e URL Cloudinary. Os três permanecem `PROCESSING` até a associação e conclusão. Se a execução salva não permitir executar os nodes isoladamente, não reiniciar o PAI inteiro: reconstruir a entrada de `Monta` com os três outputs preservados e o contexto da página 74.
 
-### Etapa seguinte: WordPress e conclusão
+### Plano anterior para WordPress e conclusão (histórico; não executar)
 
 Antes de avançar do registro para o subfluxo WP, conferir o contrato do endpoint `/m360/v1/external-featured-media` para `provider`, `secure_url`, `public_id` e deduplicação por SHA. Esse código não foi fornecido e os testes locais não provam o comportamento do WP. Instalar as procedures de associação e conclusão (`sql/deploy/03` e `04`) junto dos exports atualizados desses subfluxos. Se o endpoint reaproveitar attachment de outro repositório, a validação de URL deve bloquear a exclusão original. Confirmar associação WP, URL pública, auditoria e conclusão antes de avançar o checkpoint. O checkpoint esperado é `total_resolvidos = 6`, `pagina_atual = 75`, `ultimo_post_id = 6642`.
 

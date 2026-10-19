@@ -31,4 +31,4 @@ Em `SP_WP_fecha_checkpoint_featured`, uma lista vazia ou sem candidatos válidos
 
 ## Extensão proposta para múltiplos provedores
 
-`sql/deploy/01_storage_columns.sql` adiciona `storage_provider`, `storage_key`, `storage_url` e `storage_asset_id` a `WP_migracao_featured`, com backfill dos registros Cloudinary. Os campos `cloudinary_*` continuam como legado e recebem valores apenas de uploads Cloudinary novos. `sql/deploy/02` a `04` contém as procedures compatíveis com o contrato genérico. Esses scripts ainda não foram aplicados ao banco de produção.
+`sql/deploy/01_storage_columns.sql` adiciona `storage_provider`, `storage_key`, `storage_url` e `storage_asset_id` a `WP_migracao_featured`, com backfill apenas dos registros `MIGRATED` identificados como Cloudinary. Linhas `PROCESSING` e `ERROR` exigem reconciliação antes de definir provider. Os campos `cloudinary_*` continuam como legado e recebem valores apenas de uploads Cloudinary novos no contrato genérico. `sql/deploy/02` a `04` contém as procedures compatíveis com esse contrato. A consulta à produção retornou zero colunas `storage_*`; esses scripts ainda não foram aplicados.
