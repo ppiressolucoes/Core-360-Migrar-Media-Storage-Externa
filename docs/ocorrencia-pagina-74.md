@@ -53,45 +53,30 @@ LEFT JOIN WP_migracao_featured m
 ORDER BY c.post_id, m.id;
 ```
 
-## Retomada controlada das migrations 469–471
+## Falha posterior no lote misto
 
-Manter a agenda pausada, confirmar que não há execução ativa e verificar possíveis assets Cloudinary para os bytes dessas três mídias. Ausência de URL no banco não confirma ausência externa. Se não houver asset a reaproveitar, o bloco abaixo libera apenas 469–471. Executar `START TRANSACTION`, `UPDATE` e `SELECT` juntos na mesma conexão. Usar o **Action Output** do Workbench: o `UPDATE` deve afetar **3 linhas** e o `SELECT` deve mostrar as três em `ERROR`. Fazer `COMMIT` somente nesse caso; caso contrário, `ROLLBACK`. Não usar `SET @linhas := ROW_COUNT()` para decidir, pois essa leitura devolveu `0` no Workbench após um `UPDATE` que afetou cinco linhas na página 73. O SQL é um roteiro e não foi executado por este repositório.
+A tentativa seguinte enviou três objetos ao armazenamento externo e falhou em `Monta | Lote Uploads`, antes do registro no banco. O item **469** foi enviado ao `cloudflare_r2`, enquanto **470** e **471** foram ao `cloudinary`. Os três outputs têm `upload_ok = true`. O export `SUB | Storage Media External` confirma que a reserva ativa escolhe o provider e que o subfluxo devolve `provider`, `sha256`, `public_id`, `secure_url`, `asset_id` e `mime_type`. O PAI antigo perdia o campo `provider`, colocava URL R2 em `cloudinary_url` e exigia o host Cloudinary ao montar o lote.
+
+| Migration | Post/mídia original | Provider | SHA-256 |
+| --- | --- | --- | --- |
+| 469 | 6625/6630 | `cloudflare_r2` | `936704c6b5e4af2f443761458acf4c686f04f5dd9d24578b72c11387b17a7bcd` |
+| 470 | 6633/6639 | `cloudinary` | `05a5d58fea330c9cad8a3cc7b01268a7f56d6de31235b10753fd6d10a5336da4` |
+| 471 | 6642/6643 | `cloudinary` | `bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080` |
+
+**Manter o agendamento pausado. Não reclassificar 469–471 como `ERROR` nem reiniciar o PAI desde o upload:** isso pode repetir uploads já confirmados. Conferir o estado atual no banco, a existência dos três objetos externos e se há attachment virtual criado antes de retomar. O estado do banco após a falha ainda não foi enviado pelo usuário.
 
 ```sql
-START TRANSACTION;
-
-UPDATE WP_migracao_featured
-SET status = 'ERROR',
-    error_message = 'RETRY_CONTROLADO_P74',
-    updated_at = CURRENT_TIMESTAMP
-WHERE (id, post_id, wp_media_id) IN (
-    (469, 6625, 6630),
-    (470, 6633, 6639),
-    (471, 6642, 6643)
-)
-  AND status = 'PROCESSING'
-  AND sha256 IS NULL
-  AND cloudinary_public_id IS NULL
-  AND cloudinary_url IS NULL
-  AND wp_media_id_virtual IS NULL;
-
-SELECT id, post_id, wp_media_id, status, cloudinary_url, wp_media_id_virtual
+SELECT id, post_id, wp_media_id, status, sha256,
+       cloudinary_public_id, cloudinary_url, wp_media_id_virtual, updated_at
 FROM WP_migracao_featured
 WHERE id IN (469, 470, 471)
 ORDER BY id;
--- COMMIT somente após conferir 3 linhas afetadas e as 3 em ERROR.
 ```
 
-Depois da liberação, executar o PAI manualmente. Com limite de reserva três, essas três migrations devem formar um lote. Se todas concluírem, o checkpoint esperado é `AVANCADO`, `total_resolvidos = 6`, `pagina_atual = 75`, `ultimo_post_id = 6642`. Conferir a notificação antes de reativar a agenda. Se o upload indicar asset já existente, interromper e reconciliar a partir do asset em vez de repetir o POST.
+## Mudança proposta no repositório
 
-## Falha posterior em `Monta | Lote Uploads`
+O PAI versionado chama `SUB | Storage Media External`, preserva `storage_provider`, `storage_key`, `storage_url` e metadados por item; `Monta | Lote Uploads` reconhece também os três outputs antigos pela URL para permitir retomada da execução salva. A nova procedure `SP_WP_registra_storage_lote` grava o provider e a URL canônica; as procedures de associação e conclusão usam `storage_url`. O subfluxo WP envia `provider` ao endpoint `/m360/v1/external-featured-media`; a exclusão original só é liberada quando a URL da mídia virtual realmente servida pelo WordPress coincide com a URL canônica, inclusive o host.
 
-O usuário informou uma falha no node de montagem do lote após tentar reprocessar a página 74. A mensagem contém uma URL `//pub-...r2.dev/pel/featured/936704c6...jpg`. Esse node exige `cloudinary_url` no host `res.cloudinary.com` e extrai dele `cloudinary_cloud_name`. Logo, pelo menos um item de entrada contém URL R2 em um campo que o PAI trata como Cloudinary. Não adaptar apenas a expressão regular: `SP_WP_registra_cloudinary_lote`, a associação WordPress e a conclusão ainda usam o contrato Cloudinary.
+A implantação depende de conferir o contrato do endpoint WordPress para `provider`, `secure_url`, `public_id` e deduplicação por SHA. Esse código não foi fornecido e os testes locais não provam o comportamento do WP. Se o endpoint ignorar `provider` ou reaproveitar attachment de outro repositório, a validação de URL deve bloquear a exclusão original. Não publicar o novo PAI isoladamente: instalar as colunas e procedures de `sql/deploy/` primeiro, atualizar os três workflows em conjunto e configurar a credencial de proxy no subfluxo Storage. O export recebido tinha uma chave literal no cabeçalho; a cópia versionada foi saneada. Trocar essa chave no serviço e usar credencial gerenciada do n8n.
 
-As entradas de `Monta | Lote Uploads` identificaram o item: a migration **469** recebeu `cloudinary_url` no host `pub-2649da1456ae49a0b80d452844f9a4eb.r2.dev`, com SHA-256 `936704c6b5e4af2f443761458acf4c686f04f5dd9d24578b72c11387b17a7bcd` e `upload_ok = true`. A migration **470** recebeu Cloudinary, SHA-256 `05a5d58fea330c9cad8a3cc7b01268a7f56d6de31235b10753fd6d10a5336da4`, e a **471** também recebeu Cloudinary, SHA-256 `bbd70d36e970cedc1b4420e775f4a3d2a8f67a6e01ce02b47991ed84cdda7080`; ambas têm `upload_ok = true`. O lote misturou R2 e Cloudinary antes de chegar ao parser. Ainda falta confirmar qual workflow foi efetivamente chamado por `Chamar Repositório Externo` e por que o item 469 foi ao R2. O export do PAI versionado aponta para o subfluxo Cloudinary, mas a versão publicada pode diferir.
-
-Como a falha aconteceu antes de `SP | Registra Cloudinary Lote`, o lote desta tentativa não foi registrado por esse caminho. Os três outputs indicam upload externo concluído; consultar a existência dos assets antes de qualquer retry. Manter a agenda pausada e não reclassificar novamente 469–471 antes de reconciliar os resultados do upload e o estado atual de cada migration. As migrations 470 e 471 podem seguir o caminho Cloudinary existente usando os resultados já capturados, desde que a retomada comece depois do upload e preserve o contexto da página. A 469 exige uma decisão explícita sobre Cloudinary ou um caminho R2 validado.
-
-O export versionado agora valida o host logo em `Consolida | Resultado Upload`, após cada retorno do subfluxo. Ele falha no primeiro item que não vem do Cloudinary, antes de acumular o lote. Essa mudança está no repositório para revisão e não foi aplicada ao fluxo ativo. Se R2 for o destino pretendido, é necessário definir e validar o contrato de provider em todos os nodes e procedures seguintes antes de permitir essa URL.
-
-Não avançar a página manualmente: isso deixaria três candidatos sem resolução. Não reutilizar os IDs 457–462 da página 73 em SQL de recuperação da página 74.
+Depois da implantação e verificação do endpoint, retomar **a partir dos três resultados de upload já capturados**, na montagem do lote, preservando o contexto da página 74. Confirmar que 469–471 passam por registro, associação WP, validação da URL, auditoria e conclusão. O checkpoint deve avançar apenas quando todos os seis candidatos estiverem resolvidos. Antes de reativar a agenda, confirmar `total_resolvidos = 6`, `pagina_atual = 75` e `ultimo_post_id = 6642`.

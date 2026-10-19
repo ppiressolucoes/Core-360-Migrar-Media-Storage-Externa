@@ -28,3 +28,7 @@ Em `SP_WP_fecha_checkpoint_featured`, uma lista vazia ou sem candidatos válidos
 | `SP_WP_avanca_checkpoint_featured` | página, último post | Avança diretamente a página após validar o ponteiro; não é chamada nos cinco exports recebidos. |
 
 `SP_WP_fecha_checkpoint_featured` efetua `COMMIT` antes de retornar `AVANCADO`. Uma falha posterior no Gmail não deve causar repetição do PAI, da exclusão ou do avanço. Um retry dessa procedure pode retornar `JA_AVANCADO`; a notificação deve ser recuperada isoladamente após conferir se já foi enviada.
+
+## Extensão proposta para múltiplos provedores
+
+`sql/deploy/01_storage_columns.sql` adiciona `storage_provider`, `storage_key`, `storage_url` e `storage_asset_id` a `WP_migracao_featured`, com backfill dos registros Cloudinary. Os campos `cloudinary_*` continuam como legado e recebem valores apenas de uploads Cloudinary novos. `sql/deploy/02` a `04` contém as procedures compatíveis com o contrato genérico. Esses scripts ainda não foram aplicados ao banco de produção.

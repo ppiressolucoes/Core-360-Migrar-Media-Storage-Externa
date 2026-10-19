@@ -15,3 +15,7 @@ Fluxo de migração de midia storage externa do portal Energia Limpa
 - `docs/ocorrencia-pagina-74.md`: novo bloqueio com três de seis candidatos resolvidos e sem nova reserva; inclui as evidências e os dados necessários para identificar os pendentes.
 
 Os arquivos versionados não representam o estado atual de produção. Nenhuma migração ou exclusão é executada pelos testes locais.
+
+### Storage externo por mídia
+
+A proposta multi-provider está em `workflows/sub-storage-media-external.json`, nos três exports `pel-featured-*.json` e em `sql/deploy/`. O subfluxo recebido foi saneado: configurar a chave do proxy como credencial gerenciada antes de importá-lo. Implantar o banco e os workflows em conjunto e validar o endpoint WordPress antes de retomar a página 74; consulte `docs/ocorrencia-pagina-74.md`.

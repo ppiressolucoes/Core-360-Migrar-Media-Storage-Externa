@@ -14,7 +14,7 @@ const migrated = (id, postId = 2823) => ({
   post_id: postId,
   wp_media_id_original: 2826,
   wp_media_id_virtual: 87511,
-  cloudinary_url: 'https://res.cloudinary.com/example/image/upload/asset.jpg',
+  storage_url: 'https://res.cloudinary.com/example/image/upload/asset.jpg',
   status: 'MIGRATED'
 });
 const checkpoint = () => [
@@ -66,9 +66,9 @@ test('recusa IDs inválidos, mesmo com status MIGRATED', () => {
   assert.throws(() => run([{json: migrated('186abc')}]), /migration_id inválido/);
 });
 
-test('recusa row de conclusão sem mídia virtual ou URL Cloudinary', () => {
+test('recusa row de conclusão sem mídia virtual ou URL de storage', () => {
   assert.throws(() => run([{json: {...migrated(186), wp_media_id_virtual: null}}]), /wp_media_id_virtual/);
-  assert.throws(() => run([{json: {...migrated(186), cloudinary_url: null}}]), /cloudinary_url/);
+  assert.throws(() => run([{json: {...migrated(186), storage_url: null}}]), /storage_url/);
 });
 
 test('não envia automaticamente quando o checkpoint está aguardando ou já avançado', () => {

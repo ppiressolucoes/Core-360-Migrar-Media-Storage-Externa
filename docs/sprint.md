@@ -2,13 +2,13 @@
 
 ## Objetivo
 
-Centralizar a manutenção e a evolução da migração de imagens Featured do portal Energia Limpa para armazenamento externo. Preservar o caminho Cloudinary enquanto o Cloudflare R2 é validado de forma incremental. A sprint começa pela estabilidade da associação, exclusão auditada, conclusão no banco, checkpoint e notificação do lote. Não inclui MIRROR ou replicação obrigatória.
+Centralizar a manutenção e a evolução da migração de imagens Featured do portal Energia Limpa para armazenamento externo. Suportar a escolha de `cloudinary`, `cloudflare_r2` ou `backblaze_b2` por mídia, de acordo com a reserva do storage ativo. A sprint começa pela estabilidade da associação, exclusão auditada, conclusão no banco, checkpoint e notificação do lote. Não inclui MIRROR ou replicação obrigatória.
 
 ## Fontes versionadas
 
 | Material | Local | Tratamento |
 | --- | --- | --- |
-| Cinco exports n8n fornecidos para a sprint | `workflows/` | Inativos, sem `pinData`, IDs de credenciais ou metadados de instância. O cabeçalho estático do proxy Cloudinary foi substituído por referência a variável de ambiente. IDs de subfluxos devem ser conferidos no destino. O export de upload recebeu a definição ausente de `items` no node SHA-256. |
+| Exports n8n fornecidos para a sprint | `workflows/` | Inativos, sem `pinData`, IDs de credenciais ou metadados de instância. O cabeçalho estático do proxy Cloudinary foi substituído por referência a variável de ambiente. IDs de subfluxos devem ser conferidos no destino. O export de upload recebeu a definição ausente de `items` no node SHA-256. |
 | Nove procedures fornecidas | `sql/reference/` | Texto de referência, com `DEFINER` da origem removido. Não são migrations implantadas ou validadas contra o banco atual. |
 | Esquema das tabelas informado | `docs/banco.md` | Transcrição resumida dos campos e contratos necessários. Índices adicionais não foram fornecidos. |
 | Diagnóstico e testes locais | `docs/diagnostico.md`, `tests/` | Correções propostas nos exports e verificações executáveis com Node.js. Não representam homologação no n8n. |
@@ -21,7 +21,7 @@ Os anexos originais não devem ser publicados: contêm dados de execução, vín
 - O `pinData` recebido de `SP | Fecha Checkpoint` mostrava um resultado funcional `AVANCADO` e um item separado de metadados MySQL. Esse dado foi usado para testar o parser sem publicar o `pinData`.
 - O export recebido já referencia `Chamar | Exclusão e Auditoria` no node de notificação. O erro histórico de node inexistente pertence a uma versão anterior ou a uma execução não incluída nos anexos.
 - O caminho de falha do registro de mídia virtual chamava `SP_WP_registra_erro_associacao` com um JSON único. O contrato SQL exige cinco escalares; a chamada foi corrigida no export versionado.
-- Não foram fornecidos código do plugin WordPress, Workers, Core Storage, integração R2 nem logs de execução completos. As afirmações sobre esses componentes precisam de validação na origem. O subfluxo Cloudinary foi fornecido depois; usa `public_id` derivado do SHA-256 e `overwrite=false`, sem consulta prévia do asset.
+- Não foram fornecidos código do plugin WordPress, Workers, procedures Core Storage nem logs de execução completos; o export `SUB | Storage Media External` foi recebido em 19/10/2026. As afirmações sobre esses componentes precisam de validação na origem. O subfluxo Cloudinary foi fornecido depois; usa `public_id` derivado do SHA-256 e `overwrite=false`, sem consulta prévia do asset.
 
 ## Ordem de trabalho
 
@@ -42,3 +42,7 @@ node --test tests/*.test.js
 ```
 
 Esses testes exercitam a montagem da notificação e a assinatura da procedure de erro. A execução do lote, WordPress, banco, Workers e Gmail dependem do ambiente de homologação e não foram verificados neste repositório.
+
+## Storage externo por item (19/10/2026)
+
+A reserva de `SUB | Storage Media External` pode escolher `cloudinary`, `cloudflare_r2` ou `backblaze_b2` para cada mídia. O lote da página 74 confirmou a necessidade de persistir o provider por migration. Os exports e scripts em `sql/deploy/` implementam esse contrato como proposta de implantação conjunta; consultar [ocorrência da página 74](ocorrencia-pagina-74.md) antes de retomar a agenda.
