@@ -1,6 +1,5 @@
-// Proxy do portal Energia Limpa. Configurar e publicar no Cloudflare Workers.
-// Não seguir redirects de POST/PUT/PATCH/DELETE: um stream de request.body
-// não pode ser retransmitido com segurança pelo fetch automático.
+// Comportamento anterior do proxy, restaurado para os fluxos compartilhados.
+// O redirect automático de POST pode falhar se a origem exigir reenviar o corpo.
 export default {
   async fetch(request) {
     const incomingUrl = new URL(request.url);
@@ -55,34 +54,15 @@ export default {
     headers.set('User-Agent', 'EnergiaLimpa-N8N-Proxy/1.0');
 
     try {
-      const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-      const response = await fetch(targetUrl.toString(), {
+      const init = {
         method: request.method,
         headers,
-        body: hasBody ? request.body : undefined,
-        // Sem reenvio automático de um corpo em stream após 3xx.
-        redirect: hasBody ? 'manual' : 'follow'
-      });
-
-      if (hasBody && response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('Location');
-        return new Response(JSON.stringify({
-          status: 'origin_redirect',
-          proxy: 'n8n-pel-proxy',
-          target: targetUrl.toString(),
-          origin_status: response.status,
-          location,
-          message: 'POST redirecionado pela origem; confira a URL canônica antes de reenviar.'
-        }), {
-          status: 502,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-N8N-Proxy': 'cloudflare-worker',
-            'X-Target-Site': 'energialimpa.live',
-            'X-Origin-Status': String(response.status)
-          }
-        });
+        redirect: 'follow'
+      };
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        init.body = request.body;
       }
+      const response = await fetch(targetUrl.toString(), init);
 
       if (response.status >= 400) {
         const originBody = await response.text();
