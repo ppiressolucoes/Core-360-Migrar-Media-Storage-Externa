@@ -82,23 +82,15 @@ const associacaoConfirmada =
     if (canonical === served) return true;
     if (storageProvider !== 'cloudinary') return false;
 
-    try {
-      const original = new URL(canonical);
-      const virtual = new URL(served);
-      if (original.hostname !== 'res.cloudinary.com' ||
-          virtual.origin !== original.origin ||
-          original.search || virtual.search || original.hash || virtual.hash ||
-          !/^\/[^/]+\/image\/upload\/v\d+\/.+/.test(original.pathname)) {
-        return false;
-      }
-      const normalized = virtual.pathname.replace(
-        /^(\/[^/]+\/image\/upload\/)c_limit,w_\d+\/(?=v\d+\/)/,
-        '$1'
-      );
-      return normalized !== virtual.pathname && normalized === original.pathname;
-    } catch {
-      return false;
-    }
+    // A classe URL não está disponível no sandbox n8n desta instância.
+    const original = canonical.match(
+      /^https:\/\/res\.cloudinary\.com\/([a-z0-9_-]+)\/image\/upload\/(v\d+\/[^?#]+)$/i
+    );
+    const virtual = served.match(
+      /^https:\/\/res\.cloudinary\.com\/([a-z0-9_-]+)\/image\/upload\/c_limit,w_\d+\/(v\d+\/[^?#]+)$/i
+    );
+    return Boolean(original && virtual &&
+      original[1] === virtual[1] && original[2] === virtual[2]);
   };
 
   const urlDoProvider = providerValido && mesmoAsset(esperado, atual, provider);

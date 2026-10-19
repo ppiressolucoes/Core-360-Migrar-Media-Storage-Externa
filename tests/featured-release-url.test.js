@@ -14,9 +14,10 @@ const featuredNode = workflow.nodes.find(item => item.name === 'Valida | Feature
 
 function validate(context, sourceUrl) {
   const select = () => ({all: () => [{json: context}]});
-  return new Function('$input', '$', node.parameters.jsCode)(
+  return new Function('$input', '$', 'URL', node.parameters.jsCode)(
     {all: () => [{json: {id: context.wp_media_id_virtual, source_url: sourceUrl}}]},
-    select
+    select,
+    undefined // A instância n8n não fornece a classe URL no Code node.
   )[0].json;
 }
 
