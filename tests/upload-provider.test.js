@@ -45,11 +45,27 @@ test('lote legado 469 R2 + 470/471 Cloudinary prossegue com provedores distintos
   assert.deepEqual(result[0].json.uploads.map(x => x.storage_provider), ['cloudflare_r2', 'cloudinary', 'cloudinary']);
   assert.equal(result[0].json.uploads[0].cloudinary_url, null);
 });
-test('provider ou chave incoerente bloqueiam a migração', () => {
-  assert.throws(() => consolidate('cloudinary', r2), /URL Cloudinary inválida/);
-  assert.throws(() => consolidate('unknown', r2), /provider ausente ou desconhecido/);
+test('provider ativo com URL opaca é aceito; URL insegura ou chave ausente são bloqueadas', () => {
+  const customUrl = 'https://media.example.test/assets/opaque-123.jpg';
+  assert.equal(consolidate('new_storage', customUrl).storage_provider, 'new_storage');
+  assert.throws(() => consolidate('', customUrl), /provider ausente ou inválido/);
+  assert.throws(() => consolidate('new_storage', customUrl.replace('https:', 'http:')), /URL pública inválida/);
   assert.throws(() => run(code('Monta | Lote Uploads'), {$input: {all: () => [{json: {
     migration_id: 469, sha256: sha, storage_provider: 'cloudflare_r2',
-    storage_key: `pel/featured/${'a'.repeat(64)}`, storage_url: r2, upload_ok: true
+    storage_key: '', storage_url: r2, upload_ok: true
   }}]}}), /contrato de storage inválido/);
+});
+
+const compat = fs.readFileSync(path.join(__dirname, '../workflows/nodes/monta-lote-uploads-compat-db-atual.js'), 'utf8');
+test('compatibilidade com a procedure atual aceita R2 e domínio de outro repositório', () => {
+  const customUrl = 'https://media.example.test/assets/opaque-123.jpg';
+  const result = run(compat, {$input: {all: () => [
+    {json: {migration_id: 469, post_id: 6625, wp_media_id: 6630, sha256: sha,
+      cloudinary_public_id: key, cloudinary_url: r2, upload_ok: true}},
+    {json: {migration_id: 470, post_id: 6633, wp_media_id: 6639, sha256: sha,
+      storage_provider: 'new_storage', storage_key: key, storage_url: customUrl, upload_ok: true}}
+  ]}});
+  assert.equal(result[0].json.uploads[0].cloudinary_url, r2);
+  assert.equal(result[0].json.uploads[1].storage_provider, 'new_storage');
+  assert.equal(result[0].json.uploads[1].cloudinary_url, customUrl);
 });

@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Centralizar a manutenção e a evolução da migração de imagens Featured do portal Energia Limpa para armazenamento externo. Suportar a escolha de `cloudinary`, `cloudflare_r2` ou `backblaze_b2` por mídia, de acordo com a reserva do storage ativo. A sprint começa pela estabilidade da associação, exclusão auditada, conclusão no banco, checkpoint e notificação do lote. Não inclui MIRROR ou replicação obrigatória.
+Centralizar a manutenção e a evolução da migração de imagens Featured do portal Energia Limpa para armazenamento externo. Suportar qualquer provider escolhido pela reserva do storage ativo, preservando sua identidade e URL por mídia. A sprint começa pela estabilidade da associação, exclusão auditada, conclusão no banco, checkpoint e notificação do lote. Não inclui MIRROR ou replicação obrigatória.
 
 ## Fontes versionadas
 
@@ -45,4 +45,4 @@ Esses testes exercitam a montagem da notificação e a assinatura da procedure d
 
 ## Storage externo por item (19/10/2026)
 
-A reserva de `SUB | Storage Media External` pode escolher `cloudinary`, `cloudflare_r2` ou `backblaze_b2` para cada mídia. O lote da página 74 confirmou a necessidade de persistir o provider por migration. Os exports e scripts em `sql/deploy/` implementam esse contrato como proposta de implantação conjunta; consultar [ocorrência da página 74](ocorrencia-pagina-74.md) antes de retomar a agenda.
+A reserva de `SUB | Storage Media External` escolhe o provider ativo para cada mídia; hoje o router fornecido tem caminhos para `cloudinary`, `cloudflare_r2` e `backblaze_b2`. O PAI aceita o identificador retornado, sem lista fixa de providers ou domínios. O lote da página 74 confirmou a necessidade de persistir o provider por migration. Os exports e scripts em `sql/deploy/` implementam esse contrato como proposta de implantação conjunta; consultar [ocorrência da página 74](ocorrencia-pagina-74.md) antes de retomar a agenda.

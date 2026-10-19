@@ -1,6 +1,6 @@
 -- Executar uma vez antes de publicar o PAI multi-storage.
 ALTER TABLE WP_migracao_featured
-  ADD COLUMN storage_provider VARCHAR(32) NULL,
+  ADD COLUMN storage_provider VARCHAR(100) NULL,
   ADD COLUMN storage_key VARCHAR(255) NULL,
   ADD COLUMN storage_url TEXT NULL,
   ADD COLUMN storage_asset_id VARCHAR(255) NULL;

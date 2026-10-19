@@ -6,7 +6,7 @@ BEGIN
   DECLARE v_total INT;
   DECLARE v_id BIGINT UNSIGNED;
   DECLARE v_sha CHAR(64);
-  DECLARE v_provider VARCHAR(32);
+  DECLARE v_provider VARCHAR(100);
   DECLARE v_key VARCHAR(255);
   DECLARE v_url TEXT;
   DECLARE v_asset VARCHAR(255);
@@ -36,10 +36,10 @@ BEGIN
     IF v_id IS NULL OR v_post IS NULL OR v_media IS NULL OR v_sha IS NULL
        OR v_provider IS NULL OR v_key IS NULL OR v_url IS NULL
        OR v_sha NOT REGEXP '^[a-f0-9]{64}$'
-       OR v_provider NOT IN ('cloudinary','cloudflare_r2','backblaze_b2')
-       OR v_key NOT LIKE CONCAT('%/',v_sha)
+       OR TRIM(v_provider) = ''
+       OR CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(p_uploads, CONCAT('$[',v_i,'].storage_provider')))) > 100
        OR v_url NOT LIKE 'https://%'
-       OR LOCATE(CONCAT('/',v_key,'.'),v_url) = 0 THEN
+       OR TRIM(v_key) = '' THEN
       SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Upload possui contrato de storage inválido';
     END IF;
     SELECT COUNT(*) INTO v_count

@@ -83,6 +83,10 @@ O PAI versionado chama `SUB | Storage Media External`, preserva `storage_provide
 
 O PAI publicado **ainda não chegou a `SP | Registra Cloudinary Lote`** nesta tentativa. O contrato WordPress não bloqueia a verificação isolada de montagem e registro. Com a agenda pausada:
 
+**Correção mínima no schema atual:** colar `workflows/nodes/monta-lote-uploads-compat-db-atual.js` no node `Monta | Lote Uploads` e manter a chamada existente a `SP_WP_registra_cloudinary_lote`. O código aceita qualquer repositório que devolva uma URL HTTPS, `public_id`, SHA-256 e confirmação de upload; não exige host ou caminho específicos. Preserva o `provider` explícito que vier do subfluxo e usa o host como identificador nos outputs antigos sem esse campo. Para satisfazer a procedure atual, preenche os campos legados `cloudinary_public_id` e `cloudinary_url` mesmo quando a URL é de outro repositório. Esses nomes no banco passam a representar o objeto externo, sem provar que o provider é Cloudinary. Executar primeiro somente o node de montagem com os três itens salvos, conferir o lote e depois somente o node de registro. Isso dispensa o DDL para **essa passagem**, mas não altera os contratos posteriores de WordPress, exclusão e auditoria. A validação de exclusão antiga ainda exige host Cloudinary e bloqueará a conclusão de uma URL R2; não contornar essa barreira sem validar a URL efetiva do attachment virtual no WP.
+
+**Evolução com colunas genéricas:** os passos seguintes usam `storage_*` e `SP_WP_registra_storage_lote`. Aplicá-los quando for publicar o PAI e os subfluxos com contrato genérico completo. Não misturar o código de montagem genérico com a procedure antiga: nele, os campos `cloudinary_*` ficam nulos para R2.
+
 1. Conferir `SELECT DATABASE()` para garantir que a conexão usa o schema de `WP_migracao_featured`. **Antes do DDL, não selecionar colunas `storage_*`: elas ainda não existem e causam erro 1054.** Usar a consulta abaixo. O registro controlado exige os três em `PROCESSING`, sem URL Cloudinary ou mídia virtual já gravada.
 
 ```sql

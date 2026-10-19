@@ -11,19 +11,12 @@ const uploads = items.map((item, index) => {
   const key = String(row.storage_key || row.cloudinary_public_id || '').trim();
   const inferred = /^https:\/\/res\.cloudinary\.com\//i.test(url)
     ? 'cloudinary' : /^https:\/\/[^/]+\.r2\.dev\//i.test(url) ? 'cloudflare_r2' : null;
-  const provider = row.storage_provider || inferred;
+  const provider = String(row.storage_provider || row.provider || inferred || '').toLowerCase();
   const sha256 = String(row.sha256 || '').toLowerCase();
-  if (!['cloudinary', 'cloudflare_r2', 'backblaze_b2'].includes(provider) ||
+  if (!provider || provider.length > 100 ||
       !/^https:\/\/[^\s/?#]+\/[^\s]*$/i.test(url) ||
-      !/^[a-f0-9]{64}$/.test(sha256) ||
-      !key.endsWith(`/${sha256}`) || !url.includes(`/${key}.`)) {
+      !/^[a-f0-9]{64}$/.test(sha256) || !key) {
     throw new Error(`Migration ${id}: contrato de storage inválido.`);
-  }
-  if (provider === 'cloudinary' && !/^https:\/\/res\.cloudinary\.com\//i.test(url)) {
-    throw new Error(`Migration ${id}: URL não corresponde ao provider Cloudinary.`);
-  }
-  if (provider === 'cloudflare_r2' && !/^https:\/\/[^/]+\.r2\.dev\//i.test(url)) {
-    throw new Error(`Migration ${id}: URL não corresponde ao provider R2.`);
   }
   const extension = url.match(/\.(jpe?g|png|webp)(?:\?|$)/i)?.[1].toLowerCase();
   return {

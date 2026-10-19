@@ -6,20 +6,17 @@ if (!id || !Number(origem.post_id) || !Number(origem.wp_media_id)) {
   throw new Error('Contexto da migration incompleto no Loop.');
 }
 const provider = String(upload.provider || '').toLowerCase();
-if (!['cloudinary', 'cloudflare_r2', 'backblaze_b2'].includes(provider)) {
-  throw new Error(`Migration ${id}: provider ausente ou desconhecido.`);
+if (!provider || provider.length > 100) {
+  throw new Error(`Migration ${id}: provider ausente ou inválido.`);
 }
 const key = String(upload.public_id || '').trim();
 const url = String(upload.secure_url || '').trim();
 const sha256 = String(upload.sha256 || key.split('/').pop() || '').toLowerCase();
-if (!/^[a-f0-9]{64}$/.test(sha256) || !key.endsWith(`/${sha256}`)) {
-  throw new Error(`Migration ${id}: SHA-256 ou chave do objeto divergente.`);
+if (!/^[a-f0-9]{64}$/.test(sha256) || !key) {
+  throw new Error(`Migration ${id}: SHA-256 ou chave do objeto ausente.`);
 }
-if (!/^https:\/\/[^\s/?#]+\/[^\s]*$/i.test(url) || !url.includes(`/${key}.`)) {
-  throw new Error(`Migration ${id}: URL pública inválida ou chave divergente.`);
-}
-if (provider === 'cloudinary' && !/^https:\/\/res\.cloudinary\.com\/[^/]+\//i.test(url)) {
-  throw new Error(`Migration ${id}: URL Cloudinary inválida.`);
+if (!/^https:\/\/[^\s/?#]+\/[^\s]*$/i.test(url)) {
+  throw new Error(`Migration ${id}: URL pública inválida.`);
 }
 return {json: {
   migration_id: id,

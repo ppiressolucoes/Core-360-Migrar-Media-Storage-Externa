@@ -12,13 +12,13 @@ BEGIN
     DECLARE v_wp_media_id_original BIGINT UNSIGNED;
     DECLARE v_wp_media_id_virtual BIGINT UNSIGNED;
     DECLARE v_storage_url TEXT;
-    DECLARE v_storage_provider VARCHAR(32);
+    DECLARE v_storage_provider VARCHAR(100);
 
     DECLARE v_count INT DEFAULT 0;
     DECLARE v_status VARCHAR(20);
     DECLARE v_db_virtual BIGINT UNSIGNED;
     DECLARE v_db_storage_url TEXT;
-    DECLARE v_db_storage_provider VARCHAR(32);
+    DECLARE v_db_storage_provider VARCHAR(100);
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
