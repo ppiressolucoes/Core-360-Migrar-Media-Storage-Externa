@@ -9,6 +9,7 @@ Fluxo de migração de midia storage externa do portal Energia Limpa
 - `tests/`: testes locais do node `Monta | Notificação Lote` e do contrato da procedure de erro. Execute com `node --test tests/*.test.js`.
 - `workers/n8n-pel-proxy.js`: referência funcional compacta do Worker compartilhado; **não é a cópia literal do deployment original de 310 linhas**. Para restauração exata em produção, usar a versão anterior no histórico do Cloudflare. O histórico Git preserva o patch experimental de diagnóstico.
 - `workers/n8n-pel-proxy-original-colado.js`: transcrição do código original que o usuário colou nesta conversa, com comentários e formatação. Como o texto enviado não contém as 310 linhas mencionadas, conferir o deployment anterior no Cloudflare antes de tratá-lo como cópia literal de produção.
+- `workers/n8n-pel-featured-proxy.js`: proposta de Worker exclusivo da migração Featured; publicar como serviço separado, preservando o proxy WordPress compartilhado. Consulte `docs/isolamento-proxy-featured.md`.
 - `sql/reference/`: nove procedures fornecidas como referência, sem `DEFINER` da instância de origem. Não são migrations prontas para aplicar.
 - `docs/diagnostico.md`: mapa dos componentes, evidências, pendências e roteiro de validação controlada.
 - `docs/banco.md`: tabelas e contratos das procedures usados pela migração.

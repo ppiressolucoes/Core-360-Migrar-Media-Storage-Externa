@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "url": "https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts",
+        "url": "https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendQuery": true,
@@ -48,7 +48,7 @@
     },
     {
       "parameters": {
-        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id }}",
+        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendQuery": true,
@@ -127,7 +127,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.original_url.replace('https://energialimpa.live', 'https://n8n-pel-proxy.core360.workers.dev/energia') }}",
+        "url": "={{ $json.original_url.replace('https://energialimpa.live', 'https://n8n-pel-featured-proxy.core360.workers.dev/energia') }}",
         "options": {
           "response": {
             "response": {
