@@ -17,7 +17,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendBody": true,
@@ -83,7 +83,7 @@
     },
     {
       "parameters": {
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_virtual }}?context=edit",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_virtual }}?context=edit",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {}
@@ -167,7 +167,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendBody": true,
@@ -262,7 +262,7 @@
     },
     {
       "parameters": {
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts/{{ $json.post_id }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts/{{ $json.post_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {}
@@ -308,7 +308,7 @@
     },
     {
       "parameters": {
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_virtual }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_virtual }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {}
@@ -608,7 +608,7 @@
     },
     {
       "parameters": {
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts/{{ $json.post_id }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/posts/{{ $json.post_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {
@@ -764,7 +764,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendBody": true,
@@ -1118,7 +1118,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendBody": true,

@@ -5,10 +5,10 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const sharedHost = 'n8n-pel-proxy.core360.workers.dev';
-const featuredHost = 'n8n-pel-featured-proxy.core360.workers.dev';
+const featuredHost = 'migrar-pel-featured-proxy.core360.workers.dev';
 
 function workerWith(originFetch) {
-  const source = fs.readFileSync(path.join(__dirname, '../workers/n8n-pel-featured-proxy.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../workers/migrar-pel-featured-proxy.js'), 'utf8');
   const context = {module: {exports: {}}, URL, Headers, Request, Response, fetch: originFetch};
   vm.runInNewContext(source.replace('export default', 'module.exports ='), context);
   return context.module.exports;

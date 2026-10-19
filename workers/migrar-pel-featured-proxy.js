@@ -1,5 +1,5 @@
 // Worker exclusivo da migração Featured do portal Energia Limpa.
-// Publicar como n8n-pel-featured-proxy; não substituir n8n-pel-proxy.
+// Publicar como migrar-pel-featured-proxy; não substituir n8n-pel-proxy.
 const ORIGIN = 'https://energialimpa.live';
 
 function route(path, method) {
@@ -38,7 +38,7 @@ export default {
     const incoming = new URL(request.url);
     const kind = route(incoming.pathname, request.method);
     if (kind === 'health') {
-      return json({status: 'ok', proxy: 'n8n-pel-featured-proxy', target: 'energialimpa.live'}, 200);
+      return json({status: 'ok', proxy: 'migrar-pel-featured-proxy', target: 'energialimpa.live'}, 200);
     }
     if (!kind) {
       return json({status: 'route_not_allowed', path: incoming.pathname, method: request.method}, 404);
@@ -65,7 +65,7 @@ export default {
       if (hasBody && response.status >= 300 && response.status < 400) {
         return json({
           status: 'origin_redirect',
-          proxy: 'n8n-pel-featured-proxy',
+          proxy: 'migrar-pel-featured-proxy',
           target: target.toString(),
           origin_status: response.status,
           location: response.headers.get('Location')
@@ -75,7 +75,7 @@ export default {
       if (response.status >= 400) {
         return json({
           status: 'origin_error',
-          proxy: 'n8n-pel-featured-proxy',
+          proxy: 'migrar-pel-featured-proxy',
           target: target.toString(),
           origin_status: response.status,
           origin_status_text: response.statusText,
@@ -94,7 +94,7 @@ export default {
     } catch (error) {
       return json({
         status: 'proxy_error',
-        proxy: 'n8n-pel-featured-proxy',
+        proxy: 'migrar-pel-featured-proxy',
         message: error.message
       }, 502);
     }
