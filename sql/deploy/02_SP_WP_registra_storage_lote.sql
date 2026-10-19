@@ -14,9 +14,13 @@ BEGIN
   DECLARE v_media BIGINT UNSIGNED;
   DECLARE v_count INT;
   DECLARE v_old_status VARCHAR(20);
-  DECLARE v_old_provider VARCHAR(32);
+  DECLARE v_old_provider VARCHAR(100);
   DECLARE v_old_key VARCHAR(255);
   DECLARE v_old_url TEXT;
+  DECLARE v_old_asset VARCHAR(255);
+  DECLARE v_old_sha CHAR(64);
+  DECLARE v_old_legacy_key VARCHAR(255);
+  DECLARE v_old_legacy_url TEXT;
   DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
   IF p_uploads IS NULL OR JSON_VALID(p_uploads) = 0 OR JSON_TYPE(p_uploads) <> 'ARRAY'
      OR JSON_LENGTH(p_uploads) = 0 THEN
@@ -49,18 +53,28 @@ BEGIN
     IF v_count <> 1 THEN
       SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Migration ausente ou fora de PROCESSING';
     END IF;
-    SELECT status, storage_provider, storage_key, storage_url
-      INTO v_old_status, v_old_provider, v_old_key, v_old_url
+    SELECT status, storage_provider, storage_key, storage_url,
+           storage_asset_id, sha256, cloudinary_public_id, cloudinary_url
+      INTO v_old_status, v_old_provider, v_old_key, v_old_url,
+           v_old_asset, v_old_sha, v_old_legacy_key, v_old_legacy_url
       FROM WP_migracao_featured WHERE id = v_id FOR UPDATE;
-    IF v_old_status <> 'PROCESSING' OR (v_old_provider IS NOT NULL AND
-        (v_old_provider <> v_provider OR v_old_key IS NULL OR v_old_url IS NULL
-         OR BINARY v_old_key <> BINARY v_key OR BINARY v_old_url <> BINARY v_url)) THEN
+    IF v_old_status <> 'PROCESSING'
+       OR ((v_old_provider IS NOT NULL OR v_old_key IS NOT NULL OR v_old_url IS NOT NULL)
+           AND (v_old_provider IS NULL OR v_old_key IS NULL OR v_old_url IS NULL
+                OR v_old_provider <> v_provider
+                OR BINARY v_old_key <> BINARY v_key
+                OR BINARY v_old_url <> BINARY v_url))
+       OR (v_old_asset IS NOT NULL AND v_asset IS NOT NULL
+           AND BINARY v_old_asset <> BINARY v_asset)
+       OR (v_old_sha IS NOT NULL AND BINARY v_old_sha <> BINARY v_sha)
+       OR (v_old_legacy_key IS NOT NULL AND BINARY v_old_legacy_key <> BINARY v_key)
+       OR (v_old_legacy_url IS NOT NULL AND BINARY v_old_legacy_url <> BINARY v_url) THEN
       SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Storage conflitante na migration';
     END IF;
     UPDATE WP_migracao_featured
        SET sha256 = v_sha,
            storage_provider = v_provider, storage_key = v_key,
-           storage_url = v_url, storage_asset_id = v_asset,
+           storage_url = v_url, storage_asset_id = COALESCE(storage_asset_id, v_asset),
            cloudinary_public_id = IF(v_provider = 'cloudinary',v_key,NULL),
            cloudinary_url = IF(v_provider = 'cloudinary',v_url,NULL),
            updated_at = NOW()
