@@ -1,4 +1,6 @@
-# Agendamento Featured: página 73 aguardando
+# Agendamento Featured: retomada da página 73
+
+Em 19/10/2026, o retorno de `SP | Fecha Checkpoint` de uma execução posterior informou `pagina_atual = 74` e `ultimo_post_id = 6589`. A página 73 avançou. O mesmo retorno foi `AGUARDANDO`, com **3 de 6 candidatos da página 74** resolvidos; esse é um novo bloqueio, descrito em `docs/ocorrencia-pagina-74.md`. O resultado de checkpoint não detalha os estados finais individuais das migrations 458–462.
 
 ## Retomada observada em 16/10/2026
 
@@ -129,4 +131,4 @@ Na tentativa seguinte, o **Action Output** do Workbench informou `UPDATE ... 5 r
 - Um retorno vazio com checkpoint `AGUARDANDO` produz erro visível com página e contagem, sem avanço de página ou DELETE.
 - Após reconciliar o estado real das seis migrations, um lote controlado termina com estados resolvidos e checkpoint consistente. A notificação é conferida separadamente para evitar envio duplicado.
 
-Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade inicial está confirmada (`PROCESSING` nos seis registros). A migration 457 foi retomada e o resultado funcional de conclusão foi `MIGRATED`; o checkpoint confirmou `AGUARDANDO` com 1/6 resolvido. Restam 458–462.
+Os testes locais cobrem o JSON de checkpoint enviado, o resultset vazio da reserva e o SHA-256 do subfluxo Cloudinary. A causa da inelegibilidade inicial está confirmada (`PROCESSING` nos seis registros). A migration 457 foi retomada e o resultado funcional de conclusão foi `MIGRATED`; o checkpoint confirmou `AGUARDANDO` com 1/6 resolvido naquele momento. O checkpoint depois avançou para a página 74, sem que o resultado individual dos outros cinco tenha sido fornecido.

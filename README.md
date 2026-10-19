@@ -11,5 +11,6 @@ Fluxo de migração de midia storage externa do portal Energia Limpa
 - `docs/banco.md`: tabelas e contratos das procedures usados pela migração.
 - `docs/sprint.md`: objetivo, inventário dos insumos, ordem de trabalho e critérios de aceite da sprint.
 - `docs/ocorrencia-pagina-73.md`: diagnóstico e ajuste seguro para o agendamento que parou com checkpoint `AGUARDANDO`.
+- `docs/ocorrencia-pagina-74.md`: novo bloqueio com três de seis candidatos resolvidos e sem nova reserva; inclui as evidências e os dados necessários para identificar os pendentes.
 
 Os arquivos versionados não representam o estado atual de produção. Nenhuma migração ou exclusão é executada pelos testes locais.
