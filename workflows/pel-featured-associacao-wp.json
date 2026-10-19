@@ -17,18 +17,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia",
+        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "rest_route",
-              "value": "/m360/v1/external-featured-media"
-            }
-          ]
-        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -176,18 +167,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n-pel-proxy.core360.workers.dev/energia",
+        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "rest_route",
-              "value": "/m360/v1/external-featured-media/assign"
-            }
-          ]
-        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -782,18 +764,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n-pel-proxy.core360.workers.dev/energia",
+        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media/assign",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "rest_route",
-              "value": "/m360/v1/external-featured-media/assign"
-            }
-          ]
-        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -1145,18 +1118,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia",
+        "url": "=https://n8n-pel-proxy.core360.workers.dev/energia/wp-json/m360/v1/external-featured-media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "rest_route",
-              "value": "/m360/v1/external-featured-media"
-            }
-          ]
-        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -1313,8 +1277,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "CALL SP_WP_registra_erro_associacao(\n  {{ $json.migration_id }},\n  {{ $json.post_id }},\n  {{ $json.wp_media_id_original }},\n  {{ $json.wp_media_id_virtual ? $json.wp_media_id_virtual : 'NULL' }},\n  '{{ String($json.error_message || \"ERRO_ASSOCIACAO_WP\").replace(/'/g, \"''\") }}'\n);",
-        "options": {}
+        "query": "CALL SP_WP_registra_erro_associacao($1, $2, $3, $4, $5);",
+        "options": {
+          "queryReplacement": "={{ [Number($json.migration_id), Number($json.post_id), Number($json.wp_media_id_original), $json.wp_media_id_virtual == null ? null : Number($json.wp_media_id_virtual), String($json.error_message || 'ERRO_ASSOCIACAO_WP').slice(0, 1000)] }}"
+        }
       },
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
