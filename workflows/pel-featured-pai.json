@@ -297,7 +297,7 @@
         -256
       ],
       "id": "f7c39f7f-d4cc-46f6-98ae-9640f14bf523",
-      "name": "SP | Registra Cloudinary Lote"
+      "name": "SP | Registra Lote"
     },
     {
       "parameters": {
@@ -661,18 +661,7 @@
       "main": [
         [
           {
-            "node": "SP | Registra Cloudinary Lote",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SP | Registra Cloudinary Lote": {
-      "main": [
-        [
-          {
-            "node": "Recupera | Lote Cloudinary",
+            "node": "SP | Registra Lote",
             "type": "main",
             "index": 0
           }
@@ -786,6 +775,17 @@
         [
           {
             "node": "Valida | Checkpoint PAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Registra Lote": {
+      "main": [
+        [
+          {
+            "node": "Recupera | Lote Cloudinary",
             "type": "main",
             "index": 0
           }
