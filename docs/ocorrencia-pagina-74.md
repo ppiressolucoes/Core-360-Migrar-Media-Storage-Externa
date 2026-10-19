@@ -57,6 +57,8 @@ ORDER BY c.post_id, m.id;
 
 A tentativa seguinte enviou três objetos ao armazenamento externo e falhou em `Monta | Lote Uploads`, antes do registro no banco. O item **469** foi enviado ao `cloudflare_r2`, enquanto **470** e **471** foram ao `cloudinary`. Os três outputs têm `upload_ok = true`. O export `SUB | Storage Media External` confirma que a reserva ativa escolhe o provider e que o subfluxo devolve `provider`, `sha256`, `public_id`, `secure_url`, `asset_id` e `mime_type`. O PAI antigo perdia o campo `provider`, colocava URL R2 em `cloudinary_url` e exigia o host Cloudinary ao montar o lote.
 
+O usuário forneceu também a resposta bruta do node `Upload S3R2 - Proxy` para a **469**: `success = true`, `existing = false`, `provider = cloudflare_r2`, `mime_type = image/jpeg`, `bytes = 59593`, dimensões `840 × 560` e `object_key = pel/featured/936704c6b5e4af2f443761458acf4c686f04f5dd9d24578b72c11387b17a7bcd.jpg`. O `public_id` não contém a extensão; a URL pública contém. Essa resposta confirma que o proxy informou sucesso no upload, mas não demonstra, sozinha, a associação WordPress ou a finalização da reserva. Uma tentativa de HEAD externo neste ambiente recebeu 403 do túnel de saída antes de chegar ao R2; não é uma verificação da disponibilidade do objeto.
+
 | Migration | Post/mídia original | Provider | SHA-256 |
 | --- | --- | --- | --- |
 | 469 | 6625/6630 | `cloudflare_r2` | `936704c6b5e4af2f443761458acf4c686f04f5dd9d24578b72c11387b17a7bcd` |
