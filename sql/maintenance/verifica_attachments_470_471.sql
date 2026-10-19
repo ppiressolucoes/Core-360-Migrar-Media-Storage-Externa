@@ -1,14 +1,14 @@
+-- Abra a conexão do BANCO WORDPRESS, separada do banco WP_migracao_featured.
 -- Execute apenas estas consultas de descoberta e envie os resultados.
--- O schema/prefixo do WordPress não pode ser inferido de WP_migracao_featured.
 SELECT DATABASE() AS schema_atual;
 
 SELECT TABLE_SCHEMA, TABLE_NAME
 FROM information_schema.TABLES
-WHERE TABLE_TYPE = 'BASE TABLE'
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_TYPE = 'BASE TABLE'
   AND (
     LOWER(TABLE_NAME) LIKE '%posts'
     OR LOWER(TABLE_NAME) LIKE '%postmeta'
-    OR LOWER(TABLE_NAME) = 'wp_migracao_featured'
   )
 ORDER BY TABLE_SCHEMA, TABLE_NAME;
 

@@ -10,6 +10,8 @@ As URLs Cloudinary atuais de 470 e 471 são, respectivamente, `gbjn0cjg/v1792420
 
 O ZIP do plugin WordPress v0.1.9 confirmou que o registro rejeita `asset_id` vazio **antes** de deduplicar por SHA. Também confirmou que um attachment existente com o mesmo SHA é retornado sem comparar a URL ou o provider. A consulta somente leitura em [verifica_attachments_470_471.sql](../sql/maintenance/verifica_attachments_470_471.sql) procura os dois SHA e as URLs/metadados canônicos. Se não houver attachments correspondentes, recuperar os asset IDs reais nas contas Cloudinary das URLs atuais. O node `Normaliza | Mídia Virtual Criada` versionado agora bloqueia divergência de SHA, provider, chave, URL e asset ID antes de `/assign`.
 
+O operador confirmou que o banco WordPress e o banco `WP_migracao_featured` são distintos. O erro 1146 ao consultar `u164126954_bNEJI.WP_postmeta` demonstra que aquela referência de tabela não existe nessa conexão; não demonstra ausência de attachment. A consulta de metadados do plugin deve ser executada na conexão do banco WordPress, usando seu schema e prefixo reais, sem JOIN entre os bancos.
+
 **As instruções de retomada abaixo registram o diagnóstico anterior e não são executáveis para o estado atual.** Não reenviar o lote 469–471 à procedure: 469 está fora de `PROCESSING` e já possui mídia virtual. O GET confirmou que 469 precisa de associação ao post antes de qualquer exclusão. O backfill em `sql/deploy/01` limita-se a linhas `MIGRATED` Cloudinary identificáveis, deixando 469–471 para reconciliação individual. Manter a agenda pausada.
 
 ## Evidência de 19/10/2026
