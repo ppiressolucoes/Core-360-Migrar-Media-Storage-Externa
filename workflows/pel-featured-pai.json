@@ -285,8 +285,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "CALL SP_WP_registra_storage_lote(\n  '{{ JSON.stringify($json.uploads).replace(/'/g, \"''\") }}'\n);",
-        "options": {}
+        "query": "CALL SP_WP_registra_storage_lote($1);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.uploads)] }}"
+        }
       },
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.5,
