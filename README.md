@@ -11,6 +11,8 @@ Para a colisão de SHA entre Cloudinary e R2 na migration 493, consulte [diagnó
 
 O export operacional do Sub 02 recebido após essa atualização apresentou uma condição incorreta no `IF | Confirmação Pendente?`; veja [auditoria da migration 492](docs/ocorrencia-migration-492-auditoria.md). O export versionado neste repositório já usa `confirmacao_pendente` no IF.
 
+Após a conclusão isolada do Sub 02 para 491–493, a execução agendada do PAI continua indisponível para fechar o checkpoint. Consulte [retomada da página 78](docs/retomada-checkpoint-pagina-78.md) para conferir os seis candidatos e processar os restantes ou chamar a procedure de fechamento quando todos estiverem resolvidos.
+
 ## Artefatos disponíveis
 
 - `workflows/`: cinco exports n8n fornecidos para esta sprint, preparados para revisão. Os exports estão inativos, sem dados de execução e sem vínculos de credenciais. É necessário vincular credenciais, configurar `CLOUDINARY_PROXY_KEY` e conferir os IDs de subfluxos antes de importar ou executar.
