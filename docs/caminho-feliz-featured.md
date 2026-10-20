@@ -1,6 +1,6 @@
 # Ativação controlada da migração Featured
 
-**Atualização em 20/10/2026:** as páginas 74 e 75 já foram concluídas. O ponteiro informado está na página 76. Este roteiro registra o diagnóstico histórico; para o estado confirmado e as correções incorporadas, consulte [fechamento da página 75](fechamento-pagina-75.md).
+**Atualização em 20/10/2026:** as páginas 74–76 já foram concluídas. O ponteiro informado está na página 77. Este roteiro registra o diagnóstico histórico; para o estado confirmado e as correções incorporadas, consulte [fechamento da página 76](fechamento-pagina-76.md).
 
 Este roteiro usa somente o Worker `migrar-pel-featured-proxy`. O Worker compartilhado `n8n-pel-proxy` e os fluxos editoriais permanecem na versão publicada. A agenda do PAI fica pausada até o fechamento de um item controlado.
 

@@ -1,6 +1,6 @@
 # Base da sprint: Core Media Store Externa (PEL)
 
-**Atualização em 20/10/2026:** as migrations 473–478 foram concluídas com Cloudinary, Cloudflare R2 e Backblaze B2, e o checkpoint avançou para a página 76. Consulte [fechamento da página 75](fechamento-pagina-75.md). Os registros abaixo preservam o contexto inicial da sprint.
+**Atualização em 20/10/2026:** as migrations 479–484 também foram concluídas, e o checkpoint avançou para a página 77. Consulte [fechamento da página 76](fechamento-pagina-76.md). Os registros abaixo preservam o contexto inicial da sprint.
 
 ## Objetivo
 
