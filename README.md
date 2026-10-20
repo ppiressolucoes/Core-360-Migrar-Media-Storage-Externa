@@ -13,6 +13,8 @@ O export operacional do Sub 02 recebido após essa atualização apresentou uma 
 
 Após a conclusão isolada do Sub 02 para 491–493, a execução agendada do PAI continua indisponível para fechar o checkpoint. Consulte [retomada da página 78](docs/retomada-checkpoint-pagina-78.md) para conferir os seis candidatos e processar os restantes ou chamar a procedure de fechamento quando todos estiverem resolvidos.
 
+Na página 79, a migration 498 foi recuperada com storage Cloudinary já persistido enquanto a nova tentativa enviou o mesmo SHA para R2. Consulte [retomada do conflito de storage](docs/retomada-storage-conflitante-498.md) para registrar somente 500–501 e continuar usando o storage canônico do banco.
+
 ## Artefatos disponíveis
 
 - `workflows/`: cinco exports n8n fornecidos para esta sprint, preparados para revisão. Os exports estão inativos, sem dados de execução e sem vínculos de credenciais. É necessário vincular credenciais, configurar `CLOUDINARY_PROXY_KEY` e conferir os IDs de subfluxos antes de importar ou executar.
