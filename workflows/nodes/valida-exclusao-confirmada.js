@@ -1,5 +1,6 @@
 // Code node: Valida | Exclusão Confirmada (Run Once for All Items).
 // Um 429 após o DELETE não informa se a mídia ainda existe.
+const ultimaTentativa = false;
 const r = $json;
 const ctx = $('Loop | Exclusões').item.json;
 
@@ -46,10 +47,25 @@ if (target) {
 }
 
 if (httpStatus === 429) {
-  throw new Error(
-    `Confirmação pendente por rate limit | migration=${migrationId} | ` +
-    `media=${originalId} | HTTP=429. Aguardar e repetir somente o GET.`
-  );
+  if (ultimaTentativa) {
+    throw new Error(
+      `Confirmação pendente após retry | migration=${migrationId} | ` +
+      `media=${originalId} | HTTP=429. Repetir somente o GET mais tarde.`
+    );
+  }
+
+  return [{
+    json: {
+      ...ctx,
+      migration_id: migrationId,
+      wp_media_id_original: originalId,
+      exclusao_confirmada: false,
+      confirmacao_pendente: true,
+      exclusao_http_status: 429,
+      exclusao_origin_code: null
+    },
+    pairedItem: { item: 0 }
+  }];
 }
 
 if (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {
@@ -66,7 +82,9 @@ return [{
     migration_id: migrationId,
     wp_media_id_original: originalId,
     exclusao_confirmada: true,
+    confirmacao_pendente: false,
     exclusao_http_status: httpStatus,
     exclusao_origin_code: originCode
-  }
+  },
+  pairedItem: { item: 0 }
 }];

@@ -60,27 +60,30 @@ test('GET de confirmação 404 valida a exclusão mesmo após DELETE sem body de
   assert.equal(result.wp_media_id_original, 6734);
 });
 
-test('429 da origem aguarda e repete somente o GET uma vez', () => {
+test('validador classifica 429 e encaminha somente um retry de GET', () => {
   const first = workflow.connections['GET | Confirma Exclusão Original'].main[0][0].node;
-  assert.equal(first, 'IF | Confirmação 429?');
-  const condition = node(first).parameters.conditions.conditions[0];
-  assert.equal(condition.rightValue, 429);
-  assert.match(condition.leftValue, /origin_status/);
-  assert.equal(workflow.connections[first].main[0][0].node, 'Wait | Rate Limit 180s');
+  assert.equal(first, 'Valida | Exclusão Confirmada');
+  const check = workflow.connections[first].main[0][0].node;
+  assert.equal(check, 'IF | Confirmação Pendente?');
+  const condition = node(check).parameters.conditions.conditions[0];
+  assert.match(condition.leftValue, /confirmacao_pendente/);
+  assert.equal(workflow.connections[check].main[0][0].node, 'Wait | Rate Limit 180s');
   assert.equal(node('Wait | Rate Limit 180s').parameters.amount, 180);
   assert.equal(workflow.connections['Wait | Rate Limit 180s'].main[0][0].node,
     'GET | Repete Confirmação Original');
   assert.equal(workflow.connections['GET | Repete Confirmação Original'].main[0][0].node,
-    'Valida | Exclusão Confirmada');
-  assert.equal(workflow.connections[first].main[1][0].node,
-    'Valida | Exclusão Confirmada');
-  assert.equal(workflow.connections['Valida | Exclusão Confirmada'].main[0][0].node,
+    'Valida | Confirmação após Retry');
+  assert.equal(workflow.connections['Valida | Confirmação após Retry'].main[0][0].node,
     'Wait 20');
-  assert.equal(node('GET | Repete Confirmação Original').parameters.url,
-    node('GET | Confirma Exclusão Original').parameters.url);
+  assert.equal(workflow.connections[check].main[1][0].node,
+    'Wait 20');
+  assert.match(node('GET | Repete Confirmação Original').parameters.url,
+    /\$json\.wp_media_id_original/);
+  assert.equal(node('GET | Repete Confirmação Original').parameters.options.response.response.neverError,
+    true);
 });
 
-test('429 persistente não confirma nem repete DELETE', () => {
+test('primeiro 429 vira pendência; segundo 429 para sem confirmar exclusão', () => {
   const response = {
     statusCode: 429,
     body: {
@@ -89,10 +92,26 @@ test('429 persistente não confirma nem repete DELETE', () => {
       origin_body: ''
     }
   };
-  assert.throws(() => new Function('$json', '$',
+  const pending = new Function('$json', '$',
     node('Valida | Exclusão Confirmada').parameters.jsCode)(
     response, () => ({item: {json: ctx}})
-  ), /Confirmação pendente por rate limit/);
+  )[0];
+  assert.deepEqual(pending.pairedItem, {item: 0});
+  assert.equal(pending.json.confirmacao_pendente, true);
+  assert.equal(pending.json.exclusao_confirmada, false);
+  assert.throws(() => new Function('$json', '$',
+    node('Valida | Confirmação após Retry').parameters.jsCode)(
+    response, () => ({item: {json: ctx}})
+  ), /Confirmação pendente após retry/);
+});
+
+test('404 da origem após retry confirma a exclusão', () => {
+  const result = new Function('$json', '$',
+    node('Valida | Confirmação após Retry').parameters.jsCode)(
+    absent, () => ({item: {json: ctx}})
+  )[0].json;
+  assert.equal(result.exclusao_confirmada, true);
+  assert.equal(result.confirmacao_pendente, false);
 });
 
 test('404 de outra mídia não confirma a exclusão', () => {

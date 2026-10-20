@@ -4,12 +4,12 @@ Em 20/10/2026, o `GET | Confirma Exclusão Original` da migration 483 recebeu `s
 
 ## Tratamento no subfluxo
 
-Após `GET | Confirma Exclusão Original`, `IF | Confirmação 429?` testa `Number($json.body?.origin_status ?? $json.statusCode ?? 0) === 429`:
+`GET | Confirma Exclusão Original` entra em `Valida | Exclusão Confirmada`. Esse Code node devolve `confirmacao_pendente=true` e `exclusao_confirmada=false` para HTTP 429, sem lançar erro. O `IF | Confirmação Pendente?` testa `{{ $json.confirmacao_pendente === true }}`:
 
-- **True:** `Wait | Rate Limit 180s` → `GET | Repete Confirmação Original` → `Valida | Exclusão Confirmada`.
-- **False:** `Valida | Exclusão Confirmada`.
+- **True:** `Wait | Rate Limit 180s` → `GET | Repete Confirmação Original` → `Valida | Confirmação após Retry` → `Wait 20` → `Loop | Exclusões`.
+- **False:** `Wait 20` → `Loop | Exclusões`.
 
-O GET repetido usa o ID de `Loop | Exclusões`, a mesma credencial Basic Auth e `Include Response Headers and Status` com `Never Error`. O node de validação aceita somente o 404 da origem com `origin_body.code=rest_post_invalid_id`; um segundo 429 ou qualquer resposta diferente interrompe o subfluxo sem avançar a auditoria nem o checkpoint. O retry não passa pelo DELETE.
+O GET repetido usa `{{ $json.wp_media_id_original }}` da saída do validador, a mesma credencial Basic Auth e `Include Response Headers and Status` com `Never Error`. Os validadores aceitam somente o 404 da origem com `origin_body.code=rest_post_invalid_id` para confirmar a exclusão; o primeiro 429 vira pendência e o segundo interrompe o subfluxo sem avançar a auditoria nem o checkpoint. O retry não passa pelo DELETE.
 
 O export versionado liga o DELETE diretamente ao primeiro GET. Se o workflow publicado tiver `Wait 30s` entre eles, conservar esse node e inserir o ramo de rate limit **depois** do GET. O JSON versionado não publica alterações no n8n.
 

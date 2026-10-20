@@ -81,12 +81,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Code node: Valida | Exclusão Confirmada (Run Once for All Items).\n// Um 429 após o DELETE não informa se a mídia ainda existe.\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (!Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    throw new Error(\n      `Resposta da origem inválida | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=${httpStatus || 'N/A'}`\n    );\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body.code) {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nif (httpStatus === 429) {\n  throw new Error(\n    `Confirmação pendente por rate limit | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=429. Aguardar e repetir somente o GET.`\n  );\n}\n\nif (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {\n  throw new Error(\n    `Exclusão não confirmada | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n    `code=${originCode || 'N/A'}`\n  );\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    migration_id: migrationId,\n    wp_media_id_original: originalId,\n    exclusao_confirmada: true,\n    exclusao_http_status: httpStatus,\n    exclusao_origin_code: originCode\n  }\n}];"
+        "jsCode": "// Code node: Valida | Exclusão Confirmada (Run Once for All Items).\n// Um 429 após o DELETE não informa se a mídia ainda existe.\nconst ultimaTentativa = false;\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (!Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    throw new Error(\n      `Resposta da origem inválida | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=${httpStatus || 'N/A'}`\n    );\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body.code) {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nif (httpStatus === 429) {\n  if (ultimaTentativa) {\n    throw new Error(\n      `Confirmação pendente após retry | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=429. Repetir somente o GET mais tarde.`\n    );\n  }\n\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n      exclusao_http_status: 429,\n      exclusao_origin_code: null\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nif (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {\n  throw new Error(\n    `Exclusão não confirmada | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n    `code=${originCode || 'N/A'}`\n  );\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    migration_id: migrationId,\n    wp_media_id_original: originalId,\n    exclusao_confirmada: true,\n    confirmacao_pendente: false,\n    exclusao_http_status: httpStatus,\n    exclusao_origin_code: originCode\n  },\n  pairedItem: { item: 0 }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1744,
+        1488,
         544
       ],
       "id": "a67c329e-b6ea-4941-abd9-16b16379042b",
@@ -213,7 +213,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2000,
+        2720,
         544
       ],
       "id": "5c36f8f8-76d5-43f2-b483-565d30247f1d",
@@ -498,11 +498,12 @@
           "conditions": [
             {
               "id": "b2d97c26-a470-4340-804a-c2b29e019599",
-              "leftValue": "={{ Number($json.body?.origin_status ?? $json.statusCode ?? 0) }}",
-              "rightValue": 429,
+              "leftValue": "={{ $json.confirmacao_pendente === true }}",
+              "rightValue": "",
               "operator": {
-                "type": "number",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -513,11 +514,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1488,
+        1744,
         544
       ],
       "id": "1de5edec-8a3c-49da-985a-ae69a7596772",
-      "name": "IF | Confirmação 429?"
+      "name": "IF | Confirmação Pendente?"
     },
     {
       "parameters": {
@@ -526,7 +527,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1488,
+        2000,
         720
       ],
       "id": "236b60a3-e3cb-4e22-a981-d4527e5bc20d",
@@ -534,7 +535,7 @@
     },
     {
       "parameters": {
-        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $('Loop | Exclusões').item.json.wp_media_id_original }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_original }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {
@@ -549,13 +550,26 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1744,
+        2240,
         720
       ],
       "id": "1302cadb-f7bc-4a0a-81a4-8f74ff750a92",
       "name": "GET | Repete Confirmação Original",
       "retryOnFail": false,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code node: Valida | Confirmação após Retry (Run Once for All Items).\n// Um 429 após o DELETE não informa se a mídia ainda existe.\nconst ultimaTentativa = true;\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (!Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    throw new Error(\n      `Resposta da origem inválida | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=${httpStatus || 'N/A'}`\n    );\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body.code) {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nif (httpStatus === 429) {\n  if (ultimaTentativa) {\n    throw new Error(\n      `Confirmação pendente após retry | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=429. Repetir somente o GET mais tarde.`\n    );\n  }\n\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n      exclusao_http_status: 429,\n      exclusao_origin_code: null\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nif (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {\n  throw new Error(\n    `Exclusão não confirmada | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n    `code=${originCode || 'N/A'}`\n  );\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    migration_id: migrationId,\n    wp_media_id_original: originalId,\n    exclusao_confirmada: true,\n    confirmacao_pendente: false,\n    exclusao_http_status: httpStatus,\n    exclusao_origin_code: originCode\n  },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        720
+      ],
+      "id": "b79ab087-3ae5-4272-a749-2288c679eac6",
+      "name": "Valida | Confirmação após Retry"
     }
   ],
   "connections": {
@@ -581,7 +595,7 @@
       "main": [
         [
           {
-            "node": "IF | Confirmação 429?",
+            "node": "Valida | Exclusão Confirmada",
             "type": "main",
             "index": 0
           }
@@ -592,7 +606,7 @@
       "main": [
         [
           {
-            "node": "Wait 20",
+            "node": "IF | Confirmação Pendente?",
             "type": "main",
             "index": 0
           }
@@ -848,24 +862,6 @@
         ]
       ]
     },
-    "IF | Confirmação 429?": {
-      "main": [
-        [
-          {
-            "node": "Wait | Rate Limit 180s",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Valida | Exclusão Confirmada",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Wait | Rate Limit 180s": {
       "main": [
         [
@@ -881,7 +877,36 @@
       "main": [
         [
           {
-            "node": "Valida | Exclusão Confirmada",
+            "node": "Valida | Confirmação após Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF | Confirmação Pendente?": {
+      "main": [
+        [
+          {
+            "node": "Wait | Rate Limit 180s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valida | Confirmação após Retry": {
+      "main": [
+        [
+          {
+            "node": "Wait 20",
             "type": "main",
             "index": 0
           }
