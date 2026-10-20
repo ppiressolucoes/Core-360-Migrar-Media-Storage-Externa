@@ -1,7 +1,7 @@
 # Core-360-Migrar-Media-Storage-Externa
 Fluxo de migração de midia storage externa do portal Energia Limpa
 
-**Estado informado em 20/10/2026:** página 76 concluída (migrations 479–484 `MIGRATED`), checkpoint na página 77. Consulte [fechamento da página 76](docs/fechamento-pagina-76.md). Os exports versionados exigem importação e configuração no n8n; a atualização deste repositório não publica workflows.
+**Estado informado em 20/10/2026:** página 78 concluída (migrations 491–496 `MIGRATED`), checkpoint na página 79, último post 6925. Consulte [fechamento da página 78](docs/retomada-checkpoint-pagina-78.md). Os exports versionados exigem importação e configuração no n8n; a atualização deste repositório não publica workflows.
 
 Para retomar uma exclusão após timeout e resposta 404 no DELETE da mídia 6734, consulte [retomada após timeout](docs/retomada-delete-timeout-6734.md).
 
@@ -37,4 +37,4 @@ Os arquivos de `workflows/nodes/` contêm o código completo para cada node alte
 
 ### Storage externo por mídia
 
-O contrato multi-provider está em `workflows/sub-storage-media-external.json`, nos três exports `pel-featured-*.json` e em `sql/deploy/`. O subfluxo recebido foi saneado: configurar a chave do proxy como credencial gerenciada antes de importá-lo. As procedures de associação e conclusão foram aplicadas pelo operador durante a retomada. Antes de executar o próximo lote, conferir as versões dos três workflows no n8n e o ponteiro da página 77; consulte [fechamento da página 76](docs/fechamento-pagina-76.md).
+O contrato multi-provider está em `workflows/sub-storage-media-external.json`, nos três exports `pel-featured-*.json` e em `sql/deploy/`. O subfluxo recebido foi saneado: configurar a chave do proxy como credencial gerenciada antes de importá-lo. As procedures de associação e conclusão foram aplicadas pelo operador durante a retomada. Antes de executar o próximo lote, conferir as versões dos três workflows no n8n e o ponteiro da página 79; consulte [fechamento da página 78](docs/retomada-checkpoint-pagina-78.md).

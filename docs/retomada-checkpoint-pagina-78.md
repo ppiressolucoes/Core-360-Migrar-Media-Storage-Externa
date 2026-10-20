@@ -1,5 +1,7 @@
 # Retomada do checkpoint FEATURED da página 78
 
+**Estado atual informado pelo operador:** página 78 fechada, checkpoint na página 79. O procedimento abaixo permanece como registro da recuperação; não é necessário repetir o `CALL`.
+
 O Sub 02 do lote 491–493 foi concluído após a execução agendada do PAI ter falhado. A execução interrompida não pode continuar até `SP | Fecha Checkpoint`; isso não autoriza avançar o ponteiro sem conferir a página completa.
 
 O `Start WP` pinado do Sub 01 preserva o contexto original da página 78: `ultimo_post_pagina=6925` e seis candidatos:
@@ -49,3 +51,18 @@ CALL SP_WP_fecha_checkpoint_featured(
 ```
 
 Resultado esperado: `AVANCADO`, `total_candidatos=6`, `total_resolvidos=6`, `pagina_atual=79`, `ultimo_post_id=6925`. Se retornar `AGUARDANDO`, não executar atualização manual do ponteiro: identificar os candidatos pendentes. `JA_AVANCADO` significa que a procedure já foi aplicada. A procedure valida os seis candidatos e impede avanço enquanto algum não estiver resolvido.
+
+## Fechamento confirmado pelo operador
+
+Em 20/10/2026, o operador informou o ponteiro anterior `FEATURED / 78 / 6864` e o retorno da procedure `AVANCADO / 6 / 6 / 79 / 6925`, com `updated_at=2026-10-20 14:07:52`. A consulta posterior mostrou as migrations 491–496 como `MIGRATED`:
+
+| Migration | Post | Mídia original | Mídia virtual |
+| ---: | ---: | ---: | ---: |
+| 491 | 6847 | 6891 | 89398 |
+| 492 | 6898 | 6902 | 89399 |
+| 493 | 6906 | 6907 | 89475 |
+| 494 | 6908 | 6913 | 89400 |
+| 495 | 6915 | 6923 | 89401 |
+| 496 | 6925 | 6928 | 89402 |
+
+O próximo processamento deve começar na página 79. Remover pins temporários e conferir o ponteiro no PAI antes de qualquer nova reserva. Estes valores foram informados pelo operador; o repositório não consultou diretamente o banco de produção.
