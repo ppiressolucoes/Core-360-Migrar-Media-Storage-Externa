@@ -9,16 +9,9 @@
 const lote = $('Monta | Lote Uploads').first().json;
 const checkpoint = $('Monta | Candidatos [5]').first().json;
 const uploads = lote.uploads;
-const banco = $input.all().map(item => item.json);
 
 if (!Array.isArray(uploads) || uploads.length === 0) {
   throw new Error('Lote de uploads ausente ou vazio.');
-}
-
-if (banco.length !== uploads.length) {
-  throw new Error(
-    `Lote persistido incompleto: banco=${banco.length}, uploads=${uploads.length}.`
-  );
 }
 
 if (
@@ -52,9 +45,115 @@ for (const upload of uploads) {
   uploadsPorId.set(migrationId, upload);
 }
 
+// O MySQL pode devolver linhas planas ou blocos aninhados no formato
+// [resultset, metadados]. Também pode repetir o SELECT uma vez para cada item
+// recebido do CALL anterior. Recuperamos as linhas funcionais e deduplicamos
+// por migration_id antes de validar a cardinalidade.
+const linhasBanco = [];
+const wrappers = [
+  'json',
+  'rows',
+  'result',
+  'results',
+  'data',
+  'resultset',
+  'resultsets',
+];
+const metadata = new Set([
+  'fieldCount',
+  'affectedRows',
+  'insertId',
+  'info',
+  'serverStatus',
+  'warningStatus',
+  'changedRows',
+]);
+
+function coletarLinhas(value, depth = 0) {
+  if (depth > 12) {
+    throw new Error('Resultado do banco aninhado além do limite esperado.');
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(item => coletarLinhas(item, depth + 1));
+    return;
+  }
+
+  if (value == null) {
+    return;
+  }
+
+  if (typeof value !== 'object') {
+    throw new Error('Resultado do banco contém valor escalar inesperado.');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'migration_id')) {
+    linhasBanco.push(value);
+    return;
+  }
+
+  const keys = Object.keys(value);
+  const nestedKeys = [
+    ...wrappers,
+    ...keys.filter(key => /^\d+$/.test(key)),
+  ].filter((key, index, all) =>
+    key in value && all.indexOf(key) === index
+  );
+
+  if (nestedKeys.length > 0) {
+    nestedKeys.forEach(key => coletarLinhas(value[key], depth + 1));
+    return;
+  }
+
+  if (keys.length === 0 || keys.every(key => metadata.has(key))) {
+    return;
+  }
+
+  throw new Error(
+    `Formato desconhecido no retorno do banco: ${keys.join(', ')}.`
+  );
+}
+
+$input.all().forEach(item => coletarLinhas(item.json));
+
+const bancoPorId = new Map();
+
+for (const row of linhasBanco) {
+  const migrationId = inteiroPositivo(row.migration_id);
+
+  if (!migrationId) {
+    throw new Error(`migration_id inválido no retorno do banco: ${row.migration_id}.`);
+  }
+
+  const anterior = bancoPorId.get(migrationId);
+
+  if (anterior && JSON.stringify(anterior) !== JSON.stringify(row)) {
+    throw new Error(
+      `Migration ${migrationId}: banco retornou linhas conflitantes.`
+    );
+  }
+
+  bancoPorId.set(migrationId, row);
+}
+
+const ausentes = [...uploadsPorId.keys()]
+  .filter(migrationId => !bancoPorId.has(migrationId));
+
+const extras = [...bancoPorId.keys()]
+  .filter(migrationId => !uploadsPorId.has(migrationId));
+
+if (ausentes.length > 0 || extras.length > 0) {
+  throw new Error(
+    `Lote persistido incompleto ou excedente | ` +
+    `ausentes=${ausentes.join(',') || 'nenhuma'} | ` +
+    `extras=${extras.join(',') || 'nenhuma'} | ` +
+    `banco=${bancoPorId.size} | uploads=${uploadsPorId.size}.`
+  );
+}
+
 const vistos = new Set();
 
-const saida = banco.map(row => {
+const saida = [...bancoPorId.values()].map(row => {
   const migrationId = inteiroPositivo(row.migration_id);
   const upload = uploadsPorId.get(migrationId);
 

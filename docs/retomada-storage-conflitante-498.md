@@ -30,6 +30,8 @@ Antes de associar a 498, validar por GET que sua `storage_url` Cloudinary canôn
 
 O node seguinte `DB | Recupera Storage Canônico` continua consultando os três IDs a partir de `Monta | Lote Uploads`. Substituir temporariamente o código completo de `Recupera | Lote Repositório` por `workflows/recovery/pagina79-recupera-lote-repositorio.js`. Esse código exige igualdade de migration, post, mídia original e SHA, mas usa provider, chave, URL e asset ID persistidos no banco. Ele marca a divergência da 498 para auditoria e entrega os três itens ao Sub 01 com o storage correto.
 
+Se o MySQL devolver dois blocos (`resultset` e metadados), o código de recuperação abre o conteúdo, ignora o bloco técnico e deduplica as linhas por `migration_id`. A mensagem antiga `banco=2, uploads=3` era uma contagem dos blocos externos, não evidência de que apenas duas migrations estavam no SELECT.
+
 Após a recuperação, restaurar o Query Parameters original de `SP | Registra Lote`:
 
 ```javascript

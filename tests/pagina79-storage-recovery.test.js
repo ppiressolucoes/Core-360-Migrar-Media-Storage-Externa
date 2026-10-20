@@ -42,7 +42,7 @@ const db498 = {
   storage_asset_id: 'e04d4736c28c5442c857046cf84e63ef'
 };
 
-function execute(upload, db) {
+function execute(upload, db, inputItems = [{json: db}]) {
   const checkpoint = {
     pagina_processada: 79,
     ultimo_post_pagina: 7000,
@@ -57,7 +57,7 @@ function execute(upload, db) {
           : checkpoint
       })
     }),
-    $input: {all: () => [{json: db}]}
+    $input: {all: () => inputItems}
   });
 }
 
@@ -73,6 +73,28 @@ test('reutiliza storage Cloudinary canônico quando novo upload do mesmo SHA foi
     ['storage_provider', 'storage_url', 'storage_asset_id']
   );
   assert.equal(result.json.storage_upload_nao_canonico.url, r2Url498);
+});
+
+test('abre retorno MySQL aninhado e ignora o bloco de metadados', () => {
+  const inputItems = [{
+    json: {
+      0: [db498],
+      1: {
+        fieldCount: 0,
+        affectedRows: 0,
+        insertId: 0,
+        info: '',
+        serverStatus: 2,
+        warningStatus: 0,
+        changedRows: 0
+      }
+    }
+  }];
+
+  const [result] = execute(upload498, db498, inputItems);
+
+  assert.equal(result.json.migration_id, 498);
+  assert.equal(result.json.storage_provider, 'cloudinary');
 });
 
 test('bloqueia recuperação se o SHA do upload divergir do banco', () => {
