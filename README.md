@@ -18,10 +18,11 @@ imagens destacadas do portal **Energia Limpa** para provedores externos.
 
 | Arquivo | Responsabilidade |
 | --- | --- |
-| `PEL _ Migração Featured IMG _ PAI.json` | Orquestra reserva, upload, associação, exclusão e checkpoint. |
-| `PEL _ Featured Associação WP _ Sub 01 Fluxo.json` | Registra e associa a mídia virtual. |
-| `PEL _ Featured Exclusão e Auditoria _ Sub 02.json` | Exclui a mídia original e confirma o resultado. |
-| `SP_WP_*.sql` | Contratos transacionais e de checkpoint no MySQL. |
+| `workflows/n8n/official/` | Exports JSON dos workflows oficiais da sprint. |
+| `workflows/n8n/legacy/` | Exports substituídos, mantidos somente para histórico. |
+| `workflows/code/` | Code nodes JavaScript separados e organizados por fluxo. |
+| `database/procedures/` | Stored procedures MySQL utilizadas pelo Core. |
+| `database/legacy/` | Procedures substituídas pelo contrato genérico de storage. |
 | `docs/runbooks/` | Procedimentos de operação e recuperação. |
 | `BACKLOG.md` | Pendências priorizadas e critérios de aceite. |
 | `CHANGELOG.md` | Registro das correções e decisões aplicadas. |
@@ -49,3 +50,5 @@ incidente e a recuperação da página 79 estão documentados em
 Os JSONs são snapshots dos workflows n8n. Toda alteração aplicada diretamente
 no n8n deve ser reexportada, validada e versionada. Códigos isolados usados em
 recuperações ficam em `workflows/recovery/` para auditoria e reaplicação.
+
+O inventário completo da sprint está em [SPRINT-2026-10-20.md](SPRINT-2026-10-20.md).

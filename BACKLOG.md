@@ -51,9 +51,12 @@ Atualizado em 2026-10-20.
 ### Sincronização dos workflows n8n
 
 - Reexportar o PAI após implantar o preflight definitivo.
-- Substituir no repositório os exports legados `Sub Fluxo` pelas versões
-  oficiais `Sub 01` e `Sub 02`, ou marcá-los como arquivados.
-- Adicionar verificação automatizada de JSON e compilação dos Code nodes.
+- Reexportar o Sub 02 após incorporar a versão evoluída de
+  `Valida | Exclusão Confirmada` ao workflow publicado.
+- Confirmar que os IDs e versões dos exports oficiais correspondem aos workflows
+  publicados no n8n após o fechamento da página 79.
+- Capturar `SHOW CREATE PROCEDURE` das SPs genéricas do ambiente ativo e comparar
+  com `database/procedures/` antes da próxima implantação.
 
 ## P3 — Observabilidade
 

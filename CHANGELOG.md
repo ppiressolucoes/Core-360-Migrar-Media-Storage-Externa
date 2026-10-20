@@ -33,3 +33,14 @@
 - runbook de fechamento e retomada de lote;
 - incidente de storage conflitante e timeout/rate limit na página 79;
 - backlog para preflight canônico, retry com backoff e limpeza de órfãos.
+
+### Repositório da sprint
+
+- exports n8n separados entre `official` e `legacy`;
+- 40 Code nodes extraídos e organizados por workflow;
+- procedures MySQL reunidas em `database/procedures`;
+- procedure genérica `SP_WP_registra_storage_lote` adicionada;
+- contratos de associação e conclusão atualizados para os campos genéricos de
+  storage;
+- validador de integridade dos artefatos adicionado em
+  `tools/validate_artifacts.py`.
