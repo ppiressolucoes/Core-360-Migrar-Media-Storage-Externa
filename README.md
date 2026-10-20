@@ -3,6 +3,8 @@ Fluxo de migração de midia storage externa do portal Energia Limpa
 
 **Estado informado em 20/10/2026:** página 75 concluída (migrations 473–478 `MIGRATED`), checkpoint na página 76. Consulte [fechamento da página 75](docs/fechamento-pagina-75.md). Os exports versionados exigem importação e configuração no n8n; a atualização deste repositório não publica workflows.
 
+Para retomar uma exclusão após timeout e resposta 404 no DELETE da mídia 6734, consulte [retomada após timeout](docs/retomada-delete-timeout-6734.md).
+
 ## Artefatos disponíveis
 
 - `workflows/`: cinco exports n8n fornecidos para esta sprint, preparados para revisão. Os exports estão inativos, sem dados de execução e sem vínculos de credenciais. É necessário vincular credenciais, configurar `CLOUDINARY_PROXY_KEY` e conferir os IDs de subfluxos antes de importar ou executar.

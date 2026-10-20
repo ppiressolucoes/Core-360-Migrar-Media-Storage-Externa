@@ -35,6 +35,12 @@
               "batchSize": 1,
               "batchInterval": 10000
             }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
           }
         }
       },
@@ -49,7 +55,7 @@
     },
     {
       "parameters": {
-        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.previous.id }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $('Loop | Exclusões').item.json.wp_media_id_original }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {
