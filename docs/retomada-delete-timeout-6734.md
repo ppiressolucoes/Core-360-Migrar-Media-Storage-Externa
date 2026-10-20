@@ -9,7 +9,7 @@ O timeout do primeiro `DELETE | Mídia Original` não revela se o WordPress exec
 3. Confirmar que a saída FALSE de `IF | Precisa Excluir Original?` passa por `Normaliza | Original Já Excluída`. O lote segue para `GET | Auditoria Final Original`; exigir novamente 404 com `rest_post_invalid_id` e `auditoria_confirmada=true` antes de `SP | Conclui Migração Lote`.
 4. Após a conclusão, conferir `status=MIGRATED`, `wp_media_id_virtual`, `storage_provider` e `storage_url` da migration correspondente. Deixar `SP | Fecha Checkpoint` avançar somente quando todos os candidatos da página estiverem resolvidos. Não chamar o fechamento isoladamente para 6734.
 
-O export versionado trata um DELETE repetido que receba HTTP 404: `Never Error` mantém a execução, e `GET | Confirma Exclusão Original` usa o ID original do loop, sem depender de `previous.id` no body do DELETE. `Never Error` só cobre respostas HTTP; um novo timeout ainda exige retomar pela leitura inicial.
+O export versionado trata um DELETE repetido que receba HTTP 404: `Never Error` mantém a resposta na saída `Success`. Em `Settings`, `On Error = Continue (using error output)` encaminha um timeout ou erro de transporte pela saída `Error`. Ambas chegam ao GET de confirmação, que usa o ID original do loop sem depender de `previous.id` no body do DELETE. Só o GET posterior com 404 e `rest_post_invalid_id` libera a continuação; qualquer outro resultado bloqueia a conclusão.
 
 ## Consultas de conferência
 

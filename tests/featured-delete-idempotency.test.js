@@ -25,6 +25,11 @@ const absent = {
 test('DELETE repetido segue para GET pelo ID original do loop', () => {
   const deleteNode = node('DELETE | Mídia Original');
   assert.equal(deleteNode.parameters.options.response.response.neverError, true);
+  assert.equal(deleteNode.onError, 'continueErrorOutput');
+  assert.equal(workflow.connections['DELETE | Mídia Original'].main[0][0].node,
+    'GET | Confirma Exclusão Original');
+  assert.equal(workflow.connections['DELETE | Mídia Original'].main[1][0].node,
+    'GET | Confirma Exclusão Original');
   const confirm = node('GET | Confirma Exclusão Original');
   assert.ok(confirm.parameters.url.includes("$('Loop | Exclusões').item.json.wp_media_id_original"));
   assert.ok(!confirm.parameters.url.includes('$json.previous.id'));

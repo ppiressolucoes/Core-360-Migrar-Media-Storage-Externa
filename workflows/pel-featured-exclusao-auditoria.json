@@ -51,7 +51,8 @@
         336
       ],
       "id": "6cdcdbaf-1e95-40b1-8b47-6cd00a86ffed",
-      "name": "DELETE | Mídia Original"
+      "name": "DELETE | Mídia Original",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -489,6 +490,13 @@
   "connections": {
     "DELETE | Mídia Original": {
       "main": [
+        [
+          {
+            "node": "GET | Confirma Exclusão Original",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "GET | Confirma Exclusão Original",
