@@ -13,7 +13,8 @@ function validate(sourceUrl) {
       assert.equal(name, 'Valida | Featured Atual');
       return {all: () => [{json: {migration_id: 469, post_id: 6625,
         wp_media_id_original: 6630, wp_media_id_virtual: 90001,
-        storage_provider: 'new-storage.eu', storage_url: url,
+        storage_provider: 'new_storage_eu', storage_url: url,
+        associacao_wp_confirmada: true,
         associacao_validada: true}}]};
     }
   })[0].json;

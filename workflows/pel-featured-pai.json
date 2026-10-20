@@ -301,7 +301,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const lote = $('Monta | Lote Uploads').first().json;\nconst checkpoint = $('Monta | Candidatos [5]').first().json;\n\n// ---------------------------------------------------------\n// 1. Valida lote Storage\n// ---------------------------------------------------------\n\nif (!lote?.uploads || !Array.isArray(lote.uploads)) {\n  throw new Error('Lote de uploads Storage não encontrado.');\n}\n\nif (lote.uploads.length === 0) {\n  throw new Error('Lote Storage vazio.');\n}\n\n// ---------------------------------------------------------\n// 2. Valida contexto da página / checkpoint\n// ---------------------------------------------------------\n\nconst paginaProcessada = Number(checkpoint.pagina_processada);\nconst ultimoPostPagina = Number(checkpoint.ultimo_post_pagina);\n\nif (!paginaProcessada) {\n  throw new Error('pagina_processada inválida ou não encontrada.');\n}\n\nif (!ultimoPostPagina) {\n  throw new Error('ultimo_post_pagina inválido ou não encontrado.');\n}\n\nif (\n  !Array.isArray(checkpoint.candidatos) ||\n  checkpoint.candidatos.length === 0\n) {\n  throw new Error('Lista candidatos da página não encontrada.');\n}\n\n// Normaliza o contrato que será enviado ao subfluxo\nconst candidatosPagina = checkpoint.candidatos.map(item => ({\n  post_id: Number(item.post_id),\n  wp_media_id: Number(item.wp_media_id)\n}));\n\n// ---------------------------------------------------------\n// 3. Recupera lote Storage\n// ---------------------------------------------------------\n\nconst mapa = new Map();\n\nfor (const row of lote.uploads) {\n  const migrationId = Number(row.migration_id);\n\n  if (!migrationId) {\n    throw new Error('migration_id inválido no lote Storage.');\n  }\n\n  mapa.set(migrationId, {\n    migration_id: migrationId,\n    post_id: Number(row.post_id),\n    wp_media_id_original: Number(row.wp_media_id),\n\n    original_url: row.original_url,\n    sha256: row.sha256,\n\n    storage_provider: row.storage_provider,\n    storage_key: row.storage_key,\n    storage_url: row.storage_url,\n    storage_asset_id: row.storage_asset_id ?? null,\n    storage_mime_type: row.storage_mime_type ?? null,\n    cloudinary_cloud_name: row.cloudinary_cloud_name,\n    cloudinary_public_id: row.cloudinary_public_id,\n    cloudinary_url: row.cloudinary_url,\n    cloudinary_asset_id: row.cloudinary_asset_id ?? null,\n\n    width: row.storage_width ?? null,\n    height: row.storage_height ?? null,\n    format: row.storage_mime_type?.split(\"/\")[1] ?? null,\n\n    // -----------------------------------------------------\n    // Contexto da página para fechamento do checkpoint\n    // -----------------------------------------------------\n    pagina_processada: paginaProcessada,\n    ultimo_post_pagina: ultimoPostPagina,\n    candidatos_pagina: candidatosPagina\n  });\n}\n\n// ---------------------------------------------------------\n// 4. Retorno para o Sub Fluxo\n// ---------------------------------------------------------\n\nreturn [...mapa.values()]\n  .sort((a, b) => a.migration_id - b.migration_id)\n  .map(row => ({ json: row }));"
+        "jsCode": "// Code node após DB | Recupera Storage Canônico (Run Once for All Items).\nconst lote = $('Monta | Lote Uploads').first().json;\nconst checkpoint = $('Monta | Candidatos [5]').first().json;\nconst uploads = lote.uploads;\nconst banco = $input.all().map(item => item.json);\n\nif (!Array.isArray(uploads) || uploads.length === 0 || banco.length !== uploads.length) {\n  throw new Error('Lote persistido incompleto; interromper associação WP.');\n}\nif (!Array.isArray(checkpoint.candidatos) || checkpoint.candidatos.length === 0 ||\n    !Number.isInteger(Number(checkpoint.pagina_processada)) ||\n    !Number.isInteger(Number(checkpoint.ultimo_post_pagina))) {\n  throw new Error('Checkpoint da página inválido.');\n}\n\nconst porId = new Map();\nfor (const row of uploads) {\n  const id = Number(row.migration_id);\n  if (!Number.isSafeInteger(id) || id < 1 || porId.has(id)) {\n    throw new Error(`migration_id duplicado ou inválido: ${row.migration_id}`);\n  }\n  porId.set(id, row);\n}\n\nconst vistos = new Set();\nconst saida = banco.map(row => {\n  const id = Number(row.migration_id);\n  const upload = porId.get(id);\n  if (!upload || vistos.has(id)) throw new Error(`Migration ${id}: resultado DB ausente ou duplicado.`);\n  vistos.add(id);\n\n  const iguais = [\n    ['post_id', row.post_id, upload.post_id],\n    ['wp_media_id_original', row.wp_media_id_original, upload.wp_media_id],\n    ['sha256', row.sha256, upload.sha256],\n    ['storage_provider', row.storage_provider, upload.storage_provider],\n    ['storage_key', row.storage_key, upload.storage_key],\n    ['storage_url', row.storage_url, upload.storage_url],\n    ['storage_asset_id', row.storage_asset_id, upload.storage_asset_id],\n  ];\n  for (const [campo, db, recebido] of iguais) {\n    if (String(db ?? '') !== String(recebido ?? '')) {\n      throw new Error(`Migration ${id}: ${campo} divergente do banco; não associar ao WP.`);\n    }\n  }\n\n  const width = Number(upload.storage_width);\n  const height = Number(upload.storage_height);\n  const mime = String(upload.storage_mime_type || '');\n  if (row.status !== 'PROCESSING' ||\n      !/^[a-z0-9_]{1,100}$/.test(String(row.storage_provider || '')) ||\n      !/^https:\\/\\/[^/\\s]+\\/\\S+$/.test(String(row.storage_url || '')) ||\n      !row.storage_asset_id || !upload.original_url ||\n      !Number.isSafeInteger(width) || width < 1 ||\n      !Number.isSafeInteger(height) || height < 1 || !mime.startsWith('image/')) {\n    throw new Error(`Migration ${id}: contrato de storage ou mídia incompleto.`);\n  }\n\n  const cloudinary = row.storage_provider === 'cloudinary';\n  return { json: {\n    migration_id: id,\n    post_id: Number(row.post_id),\n    wp_media_id_original: Number(row.wp_media_id_original),\n    original_url: upload.original_url,\n    sha256: row.sha256,\n    storage_provider: row.storage_provider,\n    storage_key: row.storage_key,\n    storage_url: row.storage_url,\n    storage_asset_id: row.storage_asset_id,\n    storage_mime_type: mime,\n    storage_width: width,\n    storage_height: height,\n    width,\n    height,\n    format: mime.split('/')[1] === 'jpeg' ? 'jpg' : mime.split('/')[1],\n    cloudinary_cloud_name: cloudinary ? row.storage_url.match(/^https:\\/\\/res\\.cloudinary\\.com\\/([^/]+)/i)?.[1] ?? null : null,\n    cloudinary_public_id: cloudinary ? row.storage_key : null,\n    cloudinary_url: cloudinary ? row.storage_url : null,\n    cloudinary_asset_id: cloudinary ? row.storage_asset_id : null,\n    pagina_processada: Number(checkpoint.pagina_processada),\n    ultimo_post_pagina: Number(checkpoint.ultimo_post_pagina),\n    candidatos_pagina: checkpoint.candidatos.map(x => ({\n      post_id: Number(x.post_id), wp_media_id: Number(x.wp_media_id),\n    })),\n  } };\n});\n\nif (vistos.size !== porId.size) throw new Error('Nem todas as migrations foram retornadas pelo banco.');\nreturn saida.sort((a, b) => a.json.migration_id - b.json.migration_id);"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -310,7 +310,7 @@
         112
       ],
       "id": "76c3d5a1-b62c-4b12-8919-0b29e52bda66",
-      "name": "Recupera | Lote Cloudinary",
+      "name": "Recupera | Lote Repositório",
       "executeOnce": false
     },
     {
@@ -504,6 +504,23 @@
       ],
       "id": "ae03bb06-4231-415d-b9f9-e19612124e7e",
       "name": "Valida | Checkpoint PAI"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT m.id AS migration_id,\n       m.post_id,\n       m.wp_media_id AS wp_media_id_original,\n       m.status,\n       m.sha256,\n       m.storage_provider,\n       m.storage_key,\n       m.storage_url,\n       m.storage_asset_id,\n       m.wp_media_id_virtual\nFROM WP_migracao_featured AS m\nJOIN JSON_TABLE($1, '$[*]' COLUMNS (migration_id BIGINT PATH '$')) AS lote\n  ON lote.migration_id = m.id\nORDER BY m.id;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Monta | Lote Uploads').first().json.uploads.map(x => Number(x.migration_id)))] }}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        -64
+      ],
+      "id": "33ae2191-6796-4b58-a0e6-59a2d33de775",
+      "name": "DB | Recupera Storage Canônico"
     }
   ],
   "connections": {
@@ -668,17 +685,6 @@
         ]
       ]
     },
-    "Recupera | Lote Cloudinary": {
-      "main": [
-        [
-          {
-            "node": "PEL | Featured Associação WP | Sub Fluxo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "If": {
       "main": [
         [
@@ -785,7 +791,29 @@
       "main": [
         [
           {
-            "node": "Recupera | Lote Cloudinary",
+            "node": "DB | Recupera Storage Canônico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB | Recupera Storage Canônico": {
+      "main": [
+        [
+          {
+            "node": "Recupera | Lote Repositório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recupera | Lote Repositório": {
+      "main": [
+        [
+          {
+            "node": "PEL | Featured Associação WP | Sub Fluxo",
             "type": "main",
             "index": 0
           }

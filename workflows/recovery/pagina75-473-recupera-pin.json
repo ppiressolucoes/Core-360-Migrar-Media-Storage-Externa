@@ -1,0 +1,49 @@
+[
+  {
+    "migration_id": 473,
+    "post_id": 6644,
+    "wp_media_id_original": 6645,
+    "original_url": "https://energialimpa.live/wp-content/uploads/2024/03/hqdefault-2.jpg",
+    "sha256": "8f633d1bb30db50683129735714deea96552160b7c4140f1a258578441949abe",
+    "storage_provider": "cloudflare_r2",
+    "storage_key": "pel/featured/8f633d1bb30db50683129735714deea96552160b7c4140f1a258578441949abe",
+    "storage_url": "https://pub-4fc4737db70147a8bec050dd7fb883d7.r2.dev/pel/featured/8f633d1bb30db50683129735714deea96552160b7c4140f1a258578441949abe.jpg",
+    "storage_asset_id": "8f633d1bb30db50683129735714deea96552160b7c4140f1a258578441949abe",
+    "storage_mime_type": "image/jpeg",
+    "width": 480,
+    "height": 360,
+    "cloudinary_cloud_name": null,
+    "cloudinary_public_id": null,
+    "cloudinary_url": null,
+    "cloudinary_asset_id": null,
+    "format": "jpg",
+    "pagina_processada": 75,
+    "ultimo_post_pagina": 6714,
+    "candidatos_pagina": [
+      {
+        "post_id": 6644,
+        "wp_media_id": 6645
+      },
+      {
+        "post_id": 6646,
+        "wp_media_id": 6667
+      },
+      {
+        "post_id": 6691,
+        "wp_media_id": 6695
+      },
+      {
+        "post_id": 6697,
+        "wp_media_id": 6699
+      },
+      {
+        "post_id": 6705,
+        "wp_media_id": 6711
+      },
+      {
+        "post_id": 6714,
+        "wp_media_id": 6722
+      }
+    ]
+  }
+]

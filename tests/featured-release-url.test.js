@@ -30,6 +30,7 @@ const context = {
   wp_media_id_virtual: 89239,
   storage_provider: 'cloudinary',
   storage_url: canonical,
+  associacao_wp_confirmada: true,
   associacao_validada: true
 };
 
@@ -73,4 +74,10 @@ test('bloqueia mudança de asset, versão, cloud e transformações de outros pr
   const r2Context = {...context, storage_provider: 'cloudflare_r2', storage_url: r2};
   assert.equal(validate(r2Context, r2).exclusao_liberada, true);
   assert.equal(validate(r2Context, `${r2}?width=768`).exclusao_liberada, false);
+
+  const b2 = 'https://flow-b2-02-storage-proxy-hml.core360.workers.dev/pel/featured/a.jpg';
+  const b2Context = {...context, storage_provider: 'backblaze_b2', storage_url: b2};
+  assert.equal(validate(b2Context, b2).exclusao_liberada, true);
+  assert.equal(validate(b2Context, `${b2}?width=768`).exclusao_liberada, false);
+  assert.equal(validate({...b2Context, associacao_wp_confirmada: false}, b2).exclusao_liberada, false);
 });

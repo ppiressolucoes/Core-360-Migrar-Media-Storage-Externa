@@ -1,5 +1,7 @@
 # Base da sprint: Core Media Store Externa (PEL)
 
+**Atualização em 20/10/2026:** as migrations 473–478 foram concluídas com Cloudinary, Cloudflare R2 e Backblaze B2, e o checkpoint avançou para a página 76. Consulte [fechamento da página 75](fechamento-pagina-75.md). Os registros abaixo preservam o contexto inicial da sprint.
+
 ## Objetivo
 
 Centralizar a manutenção e a evolução da migração de imagens Featured do portal Energia Limpa para armazenamento externo. Suportar qualquer provider escolhido pela reserva do storage ativo, preservando sua identidade e URL por mídia. A sprint começa pela estabilidade da associação, exclusão auditada, conclusão no banco, checkpoint e notificação do lote. Não inclui MIRROR ou replicação obrigatória.
