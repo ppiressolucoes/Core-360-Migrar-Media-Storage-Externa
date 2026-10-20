@@ -9,6 +9,8 @@ Para tratar HTTP 429 na confirmação da exclusão da mídia 6778, consulte [ret
 
 Para a colisão de SHA entre Cloudinary e R2 na migration 493, consulte [diagnóstico e retomada](docs/ocorrencia-migration-493.md). O plugin WordPress corrigido está em `wordpress/m360-external-featured-media-v0.1.10.zip`; o código completo do validador do Sub 01 está em `workflows/nodes/normaliza-midia-virtual-criada-sub01.js`.
 
+O export operacional do Sub 02 recebido após essa atualização apresentou uma condição incorreta no `IF | Confirmação Pendente?`; veja [auditoria da migration 492](docs/ocorrencia-migration-492-auditoria.md). O export versionado neste repositório já usa `confirmacao_pendente` no IF.
+
 ## Artefatos disponíveis
 
 - `workflows/`: cinco exports n8n fornecidos para esta sprint, preparados para revisão. Os exports estão inativos, sem dados de execução e sem vínculos de credenciais. É necessário vincular credenciais, configurar `CLOUDINARY_PROXY_KEY` e conferir os IDs de subfluxos antes de importar ou executar.
