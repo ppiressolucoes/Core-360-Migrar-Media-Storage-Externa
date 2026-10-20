@@ -59,3 +59,52 @@ test('GET de confirmação 404 valida a exclusão mesmo após DELETE sem body de
   assert.equal(result.exclusao_confirmada, true);
   assert.equal(result.wp_media_id_original, 6734);
 });
+
+test('429 da origem aguarda e repete somente o GET uma vez', () => {
+  const first = workflow.connections['GET | Confirma Exclusão Original'].main[0][0].node;
+  assert.equal(first, 'IF | Confirmação 429?');
+  const condition = node(first).parameters.conditions.conditions[0];
+  assert.equal(condition.rightValue, 429);
+  assert.match(condition.leftValue, /origin_status/);
+  assert.equal(workflow.connections[first].main[0][0].node, 'Wait | Rate Limit 180s');
+  assert.equal(node('Wait | Rate Limit 180s').parameters.amount, 180);
+  assert.equal(workflow.connections['Wait | Rate Limit 180s'].main[0][0].node,
+    'GET | Repete Confirmação Original');
+  assert.equal(workflow.connections['GET | Repete Confirmação Original'].main[0][0].node,
+    'Valida | Exclusão Confirmada');
+  assert.equal(workflow.connections[first].main[1][0].node,
+    'Valida | Exclusão Confirmada');
+  assert.equal(workflow.connections['Valida | Exclusão Confirmada'].main[0][0].node,
+    'Wait 20');
+  assert.equal(node('GET | Repete Confirmação Original').parameters.url,
+    node('GET | Confirma Exclusão Original').parameters.url);
+});
+
+test('429 persistente não confirma nem repete DELETE', () => {
+  const response = {
+    statusCode: 429,
+    body: {
+      origin_status: 429,
+      target: 'https://energialimpa.live/wp-json/wp/v2/media/6734',
+      origin_body: ''
+    }
+  };
+  assert.throws(() => new Function('$json', '$',
+    node('Valida | Exclusão Confirmada').parameters.jsCode)(
+    response, () => ({item: {json: ctx}})
+  ), /Confirmação pendente por rate limit/);
+});
+
+test('404 de outra mídia não confirma a exclusão', () => {
+  const response = {
+    ...absent,
+    body: {
+      ...absent.body,
+      target: 'https://energialimpa.live/wp-json/wp/v2/media/6778'
+    }
+  };
+  assert.throws(() => new Function('$json', '$',
+    node('Valida | Exclusão Confirmada').parameters.jsCode)(
+    response, () => ({item: {json: ctx}})
+  ), /Resposta de outra mídia/);
+});
