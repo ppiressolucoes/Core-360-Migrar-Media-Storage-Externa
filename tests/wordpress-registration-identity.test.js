@@ -45,6 +45,30 @@ test('bloqueia attachment deduplicado pelo SHA com URL de outra conta', () => {
   }), /divergente em secure_url/);
 });
 
+test('bloqueia attachment Cloudinary quando migration espera R2', () => {
+  const r2 = {
+    ...origin,
+    migration_id: 493,
+    storage_provider: 'cloudflare_r2',
+    storage_asset_id: origin.sha256,
+    storage_url: `https://pub-43dc3ba28cba479abf3287dc11405d82.r2.dev/${origin.storage_key}.jpg`
+  };
+  assert.throws(() => vm.runInNewContext(`(function () {\n${code}\n})()`, {
+    $: () => ({item: {json: r2}}),
+    $json: {body: {
+      attachment_id: 86711,
+      existing: true,
+      sha256: r2.sha256,
+      provider: 'cloudinary',
+      public_id: r2.storage_key,
+      asset_id: '327d14b69c903a23cac1d281ca7245de',
+      secure_url: canonical,
+      width: r2.width,
+      height: r2.height
+    }}
+  }), /divergente em provider/);
+});
+
 test('bloqueia resposta HTTP de erro mesmo que contenha attachment_id', () => {
   assert.throws(() => vm.runInNewContext(`(function () {\n${code}\n})()`, {
     $: () => ({item: {json: origin}}),

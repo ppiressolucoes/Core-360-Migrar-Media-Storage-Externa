@@ -7,6 +7,8 @@ Para retomar uma exclusão após timeout e resposta 404 no DELETE da mídia 6734
 
 Para tratar HTTP 429 na confirmação da exclusão da mídia 6778, consulte [retomada após rate limit](docs/retomada-rate-limit-6778.md).
 
+Para a colisão de SHA entre Cloudinary e R2 na migration 493, consulte [diagnóstico e retomada](docs/ocorrencia-migration-493.md). O plugin WordPress corrigido está em `wordpress/m360-external-featured-media-v0.1.10.zip`; o código completo do validador do Sub 01 está em `workflows/nodes/normaliza-midia-virtual-criada-sub01.js`.
+
 ## Artefatos disponíveis
 
 - `workflows/`: cinco exports n8n fornecidos para esta sprint, preparados para revisão. Os exports estão inativos, sem dados de execução e sem vínculos de credenciais. É necessário vincular credenciais, configurar `CLOUDINARY_PROXY_KEY` e conferir os IDs de subfluxos antes de importar ou executar.
