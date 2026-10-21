@@ -16,6 +16,14 @@
 - código de barreira preparado para impedir que `Monta | Lote Conclusão`
   envie à SP migrations sem auditoria final confirmada.
 
+### Export oficial
+
+- Sub 02 ativo `cb3f928c-c56f-4b69-a1e9-aca611674de4` incorporado ao
+  repositório;
+- Code nodes do Sub 02 regenerados a partir do export, totalizando 11;
+- cópias provisórias de confirmação, retry e montagem do lote removidas após
+  sua incorporação ao workflow oficial.
+
 ## 2026-10-20
 
 ### Corrigido

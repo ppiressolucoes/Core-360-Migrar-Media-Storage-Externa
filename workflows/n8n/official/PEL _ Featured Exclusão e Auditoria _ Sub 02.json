@@ -87,7 +87,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Code node: Valida | Exclusão Confirmada (Run Once for All Items).\n// Um 429 após o DELETE não informa se a mídia ainda existe.\nconst ultimaTentativa = false;\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (!Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    throw new Error(\n      `Resposta da origem inválida | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=${httpStatus || 'N/A'}`\n    );\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body.code) {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nif (httpStatus === 429) {\n  if (ultimaTentativa) {\n    throw new Error(\n      `Confirmação pendente após retry | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=429. Repetir somente o GET mais tarde.`\n    );\n  }\n\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n      exclusao_http_status: 429,\n      exclusao_origin_code: null\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nif (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {\n  throw new Error(\n    `Exclusão não confirmada | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n    `code=${originCode || 'N/A'}`\n  );\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    migration_id: migrationId,\n    wp_media_id_original: originalId,\n    exclusao_confirmada: true,\n    confirmacao_pendente: false,\n    exclusao_http_status: httpStatus,\n    exclusao_origin_code: originCode\n  },\n  pairedItem: { item: 0 }\n}];"
+        "jsCode": "// Code node: Valida | Exclusão Confirmada\n// Mode: Run Once for All Items\n//\n// O DELETE pode terminar no WordPress mesmo quando a confirmação posterior\n// recebe timeout ou rate limit. Respostas transitórias não encerram o fluxo:\n// elas seguem para Wait e repetem somente o GET de confirmação.\n\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (\n  !Number.isSafeInteger(migrationId) ||\n  migrationId <= 0 ||\n  !Number.isSafeInteger(originalId) ||\n  originalId <= 0\n) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | ` +\n    `original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body =\n  r.body && typeof r.body === 'object'\n    ? r.body\n    : r;\n\nconst httpStatus = Number(\n  body.origin_status ??\n  r.statusCode ??\n  0\n);\n\nlet originBody = {};\n\nif (\n  typeof body.origin_body === 'string' &&\n  body.origin_body.trim()\n) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    originBody = {};\n  }\n} else if (\n  body.origin_body &&\n  typeof body.origin_body === 'object'\n) {\n  originBody = body.origin_body;\n} else if (\n  body &&\n  typeof body === 'object'\n) {\n  originBody = body;\n}\n\nconst originCode =\n  originBody.code ??\n  null;\n\nconst target =\n  String(body.target ?? '');\n\nif (target) {\n  const match = target.match(\n    /\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/\n  );\n\n  if (\n    !match ||\n    Number(match[1]) !== originalId\n  ) {\n    throw new Error(\n      `Resposta de outra mídia | ` +\n      `migration=${migrationId} | ` +\n      `media=${originalId} | ` +\n      `target=${target}`\n    );\n  }\n}\n\n// Confirmação definitiva de que a mídia original não existe.\nconst exclusaoConfirmada =\n  httpStatus === 404 &&\n  originCode === 'rest_post_invalid_id';\n\nif (exclusaoConfirmada) {\n  return [{\n    json: {\n      ...ctx,\n\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n\n      exclusao_confirmada: true,\n      confirmacao_pendente: false,\n\n      exclusao_http_status: httpStatus,\n      exclusao_origin_code: originCode,\n\n      confirmacao_retry_after: 0,\n      confirmacao_status: 'EXCLUIDA'\n    },\n\n    pairedItem: {\n      item: 0\n    }\n  }];\n}\n\n// Respostas transitórias: repetir somente o GET.\nconst statusTransitorios = new Set([\n  408,\n  425,\n  429,\n  500,\n  502,\n  503,\n  504,\n  520,\n  521,\n  522,\n  523,\n  524\n]);\n\nif (statusTransitorios.has(httpStatus)) {\n  const retryAfterInformado = Number(\n    originBody.retry_after ??\n    body.retry_after ??\n    r.headers?.['retry-after'] ??\n    0\n  );\n\n  const retryAfter = Math.max(\n    Number.isFinite(retryAfterInformado)\n      ? retryAfterInformado\n      : 0,\n    httpStatus === 429 || httpStatus === 504\n      ? 120\n      : 60\n  );\n\n  return [{\n    json: {\n      ...ctx,\n\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n\n      exclusao_http_status: httpStatus,\n      exclusao_origin_code: originCode,\n\n      confirmacao_retry_after: retryAfter,\n      confirmacao_status: 'PENDENTE_RETRY_GET',\n      confirmacao_motivo:\n        originBody.error_name ??\n        body.origin_status_text ??\n        r.statusMessage ??\n        `HTTP_${httpStatus}`\n    },\n\n    pairedItem: {\n      item: 0\n    }\n  }];\n}\n\n// HTTP 200 significa que a mídia continua existindo.\n// Não pode ser interpretado como exclusão concluída.\nif (httpStatus === 200) {\n  throw new Error(\n    `Mídia original ainda existe após DELETE | ` +\n    `migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=200`\n  );\n}\n\nthrow new Error(\n  `Exclusão não confirmada | ` +\n  `migration=${migrationId} | ` +\n  `media=${originalId} | ` +\n  `HTTP=${httpStatus || 'N/A'} | ` +\n  `code=${originCode || 'N/A'}`\n);"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -160,7 +160,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const itens = $input.all();\n\nif (itens.length === 0) {\n  throw new Error('Nenhum item recebido para conclusão.');\n}\n\nconst lote = itens.map(item => {\n  const x = item.json;\n\n  const migrationId = Number(x.migration_id);\n  const postId = Number(x.post_id);\n  const originalId = Number(x.wp_media_id_original);\n  const virtualId = Number(x.wp_media_id_virtual);\n  const provider = String(x.storage_provider ?? '').trim();\n  const storageUrl = String(x.storage_url ?? '').trim();\n\n  if (\n    !Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(postId) || postId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0 ||\n    !Number.isSafeInteger(virtualId) || virtualId <= 0 ||\n    !/^[a-z0-9_]{1,100}$/.test(provider) ||\n    !/^https:\\/\\/[^/\\s]+\\/\\S+$/.test(storageUrl)\n  ) {\n    throw new Error(\n      `Migration ${migrationId}: lote de conclusão incompleto.`\n    );\n  }\n\n  return {\n    migration_id: migrationId,\n    post_id: postId,\n    wp_media_id_original: originalId,\n    wp_media_id_virtual: virtualId,\n    storage_provider: provider,\n    storage_url: storageUrl\n  };\n});\n\nreturn [{\n  json: {\n    total: lote.length,\n    lote\n  }\n}];"
+        "jsCode": "// Node: Monta | Lote Conclusão\n// Mode: Run Once for All Items\n// Somente auditorias 404/rest_post_invalid_id podem chegar à SP de conclusão.\n\nconst esperados = $('Recupera | Lote Auditoria Final').all();\n\nif (esperados.length === 0) {\n  throw new Error('Nenhum item esperado para conclusão do lote.');\n}\n\nconst confirmados = [];\nconst nodesConfirmacao = [\n  'Classifica | Auditoria Final',\n  'Valida | Retry Auditoria Final',\n];\n\n// Os nodes de auditoria executam em runIndex diferentes dentro do loop.\nfor (const nodeName of nodesConfirmacao) {\n  for (let runIndex = 0; runIndex < esperados.length; runIndex++) {\n    try {\n      const itensRun = $(nodeName).all(0, runIndex);\n\n      if (Array.isArray(itensRun)) {\n        confirmados.push(...itensRun);\n      }\n    } catch {\n      // O node pode não ter executado nesta iteração.\n    }\n  }\n}\n\nconst mapaEsperados = new Map();\n\nfor (const item of esperados) {\n  const x = item.json;\n  const migrationId = Number(x.migration_id);\n\n  if (!Number.isSafeInteger(migrationId) || migrationId <= 0) {\n    throw new Error('Lote de auditoria contém migration_id inválido.');\n  }\n\n  if (mapaEsperados.has(migrationId)) {\n    throw new Error(\n      `Migration ${migrationId}: duplicada no lote de auditoria.`\n    );\n  }\n\n  mapaEsperados.set(migrationId, x);\n}\n\nconst mapaConfirmados = new Map();\n\nfor (const item of confirmados) {\n  const x = item.json;\n\n  if (\n    x.auditoria_confirmada !== true ||\n    x.auditoria_status !== 'EXCLUIDA' ||\n    Number(x.auditoria_http_status) !== 404 ||\n    x.auditoria_origin_code !== 'rest_post_invalid_id'\n  ) {\n    continue;\n  }\n\n  const migrationId = Number(x.migration_id);\n  const postId = Number(x.post_id);\n  const originalId = Number(x.wp_media_id_original);\n  const virtualId = Number(x.wp_media_id_virtual);\n  const provider = String(x.storage_provider ?? '').trim();\n  const storageUrl = String(x.storage_url ?? '').trim();\n  const esperado = mapaEsperados.get(migrationId);\n\n  if (!esperado) {\n    throw new Error(\n      `Migration ${migrationId}: auditoria não pertence ao lote atual.`\n    );\n  }\n\n  if (\n    !Number.isSafeInteger(migrationId) ||\n    migrationId <= 0 ||\n    !Number.isSafeInteger(postId) ||\n    postId <= 0 ||\n    !Number.isSafeInteger(originalId) ||\n    originalId <= 0 ||\n    !Number.isSafeInteger(virtualId) ||\n    virtualId <= 0 ||\n    !/^[a-z0-9_]{1,100}$/.test(provider) ||\n    !/^https:\\/\\/[^/\\s]+\\/\\S+$/.test(storageUrl)\n  ) {\n    throw new Error(\n      `Migration ${migrationId}: confirmação de auditoria incompleta.`\n    );\n  }\n\n  if (\n    Number(esperado.post_id) !== postId ||\n    Number(esperado.wp_media_id_original) !== originalId ||\n    Number(esperado.wp_media_id_virtual) !== virtualId ||\n    String(esperado.storage_provider ?? '').trim() !== provider ||\n    String(esperado.storage_url ?? '').trim() !== storageUrl\n  ) {\n    throw new Error(\n      `Migration ${migrationId}: auditoria diverge do lote esperado.`\n    );\n  }\n\n  const anterior = mapaConfirmados.get(migrationId);\n\n  if (\n    anterior &&\n    (\n      anterior.post_id !== postId ||\n      anterior.wp_media_id_original !== originalId ||\n      anterior.wp_media_id_virtual !== virtualId\n    )\n  ) {\n    throw new Error(\n      `Migration ${migrationId}: confirmações de auditoria conflitantes.`\n    );\n  }\n\n  mapaConfirmados.set(migrationId, {\n    migration_id: migrationId,\n    post_id: postId,\n    wp_media_id_original: originalId,\n    wp_media_id_virtual: virtualId,\n    storage_provider: provider,\n    storage_url: storageUrl,\n  });\n}\n\nconst pendentes = [...mapaEsperados.keys()]\n  .filter(migrationId => !mapaConfirmados.has(migrationId))\n  .sort((a, b) => a - b);\n\nif (pendentes.length > 0) {\n  throw new Error(\n    `Conclusão bloqueada: auditoria final não confirmada para migrations ` +\n    `${pendentes.join(', ')}.`\n  );\n}\n\nconst lote = [...mapaConfirmados.values()]\n  .sort((a, b) => a.migration_id - b.migration_id);\n\nif (lote.length !== esperados.length) {\n  throw new Error(\n    `Conclusão bloqueada: esperados=${esperados.length}, ` +\n    `confirmados=${lote.length}.`\n  );\n}\n\nreturn [{\n  json: {\n    total: lote.length,\n    lote,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -220,20 +220,6 @@
     },
     {
       "parameters": {
-        "amount": 20
-      },
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        2176,
-        528
-      ],
-      "id": "5c36f8f8-76d5-43f2-b483-565d30247f1d",
-      "name": "Wait 20",
-      "webhookId": "08147e91-9130-4904-91c0-c83feb614ec0"
-    },
-    {
-      "parameters": {
         "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_original }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
@@ -267,7 +253,7 @@
       "parameters": {
         "content": "## DELETE MÍDIA ORIGINAL",
         "height": 1008,
-        "width": 2096,
+        "width": 608,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -518,7 +504,7 @@
     },
     {
       "parameters": {
-        "amount": 15
+        "amount": 30
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -532,7 +518,7 @@
     },
     {
       "parameters": {
-        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $json.wp_media_id_original }}",
+        "url": "=https://migrar-pel-featured-proxy.core360.workers.dev/energia/wp-json/wp/v2/media/{{ $('Loop | Exclusões').item.json.wp_media_id_original }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "options": {
@@ -563,20 +549,6 @@
     },
     {
       "parameters": {
-        "amount": 20
-      },
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        2400,
-        800
-      ],
-      "id": "511d2f73-0ab0-4f85-9683-8f2f33903c90",
-      "name": "Wait ",
-      "webhookId": "08147e91-9130-4904-91c0-c83feb614ec0"
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -587,11 +559,12 @@
           "conditions": [
             {
               "id": "e921a377-7aa6-48de-84f7-ee1177d95cbc",
-              "leftValue": "={{ Number($json.body?.origin_status ?? $json.statusCode ?? 0) }}",
+              "leftValue": "={{ $json.confirmacao_pendente }}",
               "rightValue": 429,
               "operator": {
-                "type": "number",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -610,32 +583,214 @@
     },
     {
       "parameters": {
-        "jsCode": "// Code node: Valida | Confirmação após Retry (Run Once for All Items).\n// Um 429 após o DELETE não informa se a mídia ainda existe.\nconst ultimaTentativa = true;\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (!Number.isSafeInteger(migrationId) || migrationId <= 0 ||\n    !Number.isSafeInteger(originalId) || originalId <= 0) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    throw new Error(\n      `Resposta da origem inválida | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=${httpStatus || 'N/A'}`\n    );\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body.code) {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nif (httpStatus === 429) {\n  if (ultimaTentativa) {\n    throw new Error(\n      `Confirmação pendente após retry | migration=${migrationId} | ` +\n      `media=${originalId} | HTTP=429. Repetir somente o GET mais tarde.`\n    );\n  }\n\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n      exclusao_http_status: 429,\n      exclusao_origin_code: null\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nif (httpStatus !== 404 || originCode !== 'rest_post_invalid_id') {\n  throw new Error(\n    `Exclusão não confirmada | migration=${migrationId} | ` +\n    `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n    `code=${originCode || 'N/A'}`\n  );\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    migration_id: migrationId,\n    wp_media_id_original: originalId,\n    exclusao_confirmada: true,\n    confirmacao_pendente: false,\n    exclusao_http_status: httpStatus,\n    exclusao_origin_code: originCode\n  },\n  pairedItem: { item: 0 }\n}];"
+        "jsCode": "// Node: Valida | Exclusão Confirmada Retry\n// Mode: Run Once for All Items\n// HTTP 200 exige novo DELETE; respostas transitórias repetem somente o GET.\n\nconst r = $json;\nconst ctx = $('Loop | Exclusões').item.json;\n\nconst migrationId = Number(ctx.migration_id);\nconst originalId = Number(ctx.wp_media_id_original);\n\nif (\n  !Number.isSafeInteger(migrationId) ||\n  migrationId <= 0 ||\n  !Number.isSafeInteger(originalId) ||\n  originalId <= 0\n) {\n  throw new Error(\n    `Contexto inválido na confirmação da exclusão | ` +\n    `migration=${ctx.migration_id} | original=${ctx.wp_media_id_original}`\n  );\n}\n\nconst body = r.body && typeof r.body === 'object' ? r.body : r;\nconst httpStatus = Number(body.origin_status ?? r.statusCode ?? 0);\n\nlet originBody = {};\n\nif (typeof body.origin_body === 'string' && body.origin_body.trim()) {\n  try {\n    originBody = JSON.parse(body.origin_body);\n  } catch {\n    originBody = {};\n  }\n} else if (body.origin_body && typeof body.origin_body === 'object') {\n  originBody = body.origin_body;\n} else if (body && typeof body === 'object') {\n  originBody = body;\n}\n\nconst originCode = originBody.code ?? null;\nconst target = String(body.target ?? '');\n\nif (target) {\n  const match = target.match(/\\/wp\\/v2\\/media\\/(\\d+)(?:[/?#]|$)/);\n\n  if (!match || Number(match[1]) !== originalId) {\n    throw new Error(\n      `Resposta de outra mídia | migration=${migrationId} | ` +\n      `media=${originalId} | target=${target}`\n    );\n  }\n}\n\nconst mediaRetornada = Number(body.id ?? 0);\n\nif (\n  httpStatus === 200 &&\n  (!Number.isSafeInteger(mediaRetornada) || mediaRetornada !== originalId)\n) {\n  throw new Error(\n    `GET retornou contexto divergente | migration=${migrationId} | ` +\n    `media_esperada=${originalId} | media_retornada=${body.id ?? 'N/A'}`\n  );\n}\n\nif (httpStatus === 404 && originCode === 'rest_post_invalid_id') {\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: true,\n      confirmacao_pendente: false,\n      repetir_exclusao: false,\n      exclusao_acao: 'CONFIRMADA',\n      exclusao_http_status: httpStatus,\n      exclusao_origin_code: originCode,\n      confirmacao_retry_after: 0,\n    },\n    pairedItem: { item: 0 },\n  }];\n}\n\nif (httpStatus === 200) {\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: false,\n      repetir_exclusao: true,\n      exclusao_acao: 'REPETIR_DELETE',\n      exclusao_http_status: httpStatus,\n      exclusao_origin_code: null,\n      confirmacao_retry_after: 120,\n      confirmacao_motivo: 'MIDIA_ORIGINAL_AINDA_EXISTE',\n    },\n    pairedItem: { item: 0 },\n  }];\n}\n\nconst statusTransitorios = new Set([\n  408,\n  425,\n  429,\n  500,\n  502,\n  503,\n  504,\n  520,\n  521,\n  522,\n  523,\n  524,\n]);\n\nif (statusTransitorios.has(httpStatus)) {\n  const retryAfterInformado = Number(\n    originBody.retry_after ??\n    body.retry_after ??\n    r.headers?.['retry-after'] ??\n    0\n  );\n\n  const retryAfter = Math.max(\n    Number.isFinite(retryAfterInformado) ? retryAfterInformado : 0,\n    httpStatus === 429 || httpStatus === 504 ? 120 : 60\n  );\n\n  return [{\n    json: {\n      ...ctx,\n      migration_id: migrationId,\n      wp_media_id_original: originalId,\n      exclusao_confirmada: false,\n      confirmacao_pendente: true,\n      repetir_exclusao: false,\n      exclusao_acao: 'REPETIR_GET',\n      exclusao_http_status: httpStatus,\n      exclusao_origin_code: originCode,\n      confirmacao_retry_after: retryAfter,\n      confirmacao_motivo:\n        originBody.error_name ??\n        body.origin_status_text ??\n        r.statusMessage ??\n        `HTTP_${httpStatus}`,\n    },\n    pairedItem: { item: 0 },\n  }];\n}\n\nthrow new Error(\n  `Exclusão não confirmada | migration=${migrationId} | ` +\n  `media=${originalId} | HTTP=${httpStatus || 'N/A'} | ` +\n  `code=${originCode || 'N/A'}`\n);"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2176,
+        2192,
         800
       ],
       "id": "2a2215eb-e722-44e7-8b2c-98b81f141ea1",
       "name": "Valida | Exclusão Confirmada Retry"
+    },
+    {
+      "parameters": {
+        "amount": 120
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2176,
+        528
+      ],
+      "id": "5c36f8f8-76d5-43f2-b483-565d30247f1d",
+      "name": "Wait 120s1",
+      "webhookId": "08147e91-9130-4904-91c0-c83feb614ec0"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CALL SP_WP_fecha_checkpoint_featured(\n  '{{ JSON.stringify($(\"Start WP\").first().json.candidatos_pagina).replace(/'/g, \"''\") }}',\n  {{ $(\"Start WP\").first().json.pagina_processada }},\n  {{ $(\"Start WP\").first().json.ultimo_post_pagina }}\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        2096,
+        -224
+      ],
+      "id": "fe208e75-ed53-48a6-a593-bdeb3b785aab",
+      "name": "SP | Fecha Checkpoint",
+      "executeOnce": true,
+      "credentials": {
+        "mySql": {
+          "id": "z8fcfJ75xxXxELvm",
+          "name": "PEL N8N Automações"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sendTo": "contato@energialimpa.live",
+        "subject": "={{ $json.assunto }}",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2512,
+        -224
+      ],
+      "id": "36586b10-26ad-4f5b-9caa-2957feb6b33a",
+      "name": "Enviar Notificação",
+      "webhookId": "c08c0024-baac-4d69-9dea-ceecf58715ad",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8ZF0ckph58DtnT6",
+          "name": "Gmail Flow N8N [ luzia.aires1010 ]"
+        }
+      },
+      "disabled": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =========================================================\n// 1. RECUPERA MIGRATIONS CONCLUÍDAS PELO NOVO FILHO 2\n// =========================================================\n\nconst retornoExclusao =\n  $('Chamar | Exclusão e Auditoria').all();\n\nconst migrados = [];\n\n// O subfluxo pode retornar:\n// - um resultset como array\n// - objetos individuais\n// - metadata estrutural do MySQL\nfor (const item of retornoExclusao) {\n\n  const value = item.json;\n\n  // ResultSet MySQL\n  if (Array.isArray(value)) {\n\n    for (const registro of value) {\n\n      if (\n        registro?.migration_id &&\n        registro?.status === 'MIGRATED'\n      ) {\n        migrados.push(registro);\n      }\n\n    }\n\n    continue;\n  }\n\n  // Objeto funcional direto\n  if (\n    value?.migration_id &&\n    value?.status === 'MIGRATED'\n  ) {\n    migrados.push(value);\n  }\n}\n\n\n// =========================================================\n// 2. REMOVE EVENTUAIS DUPLICIDADES\n// =========================================================\n\nconst mapaMigrados = new Map();\n\nfor (const item of migrados) {\n  mapaMigrados.set(\n    Number(item.migration_id),\n    item\n  );\n}\n\nconst loteConcluido =\n  [...mapaMigrados.values()];\n\n\n// =========================================================\n// 3. VALIDA LOTE CONCLUÍDO\n// =========================================================\n\nif (loteConcluido.length === 0) {\n  throw new Error(\n    'Nenhuma migration MIGRATED retornada pelo subfluxo de Exclusão e Auditoria.'\n  );\n}\n\n\n// =========================================================\n// 4. RECUPERA RESULTADO DO CHECKPOINT\n// =========================================================\n\nconst checkpointRaw = $input.all();\n\nlet checkpoint = null;\n\nfor (const item of checkpointRaw) {\n\n  const value = item.json;\n\n  // ResultSet retornado pela SP\n  if (Array.isArray(value)) {\n\n    const encontrado =\n      value.find(x => x?.resultado);\n\n    if (encontrado) {\n      checkpoint = encontrado;\n      break;\n    }\n  }\n\n  // Compatibilidade com retorno direto\n  if (value?.resultado) {\n    checkpoint = value;\n    break;\n  }\n}\n\n\n// =========================================================\n// 5. NORMALIZA POSTS MIGRADOS\n// =========================================================\n\nconst posts = loteConcluido.map(item => {\n\n  const postId =\n    Number(item.post_id);\n\n  return {\n\n    migration_id:\n      Number(item.migration_id),\n\n    post_id:\n      postId,\n\n    url_publica:\n      `https://energialimpa.live/?p=${postId}`,\n\n    wp_media_id_original:\n      Number(item.wp_media_id_original),\n\n    wp_media_id_virtual:\n      Number(item.wp_media_id_virtual),\n\n    cloudinary_url:\n      item.cloudinary_url\n  };\n});\n\n\n// =========================================================\n// 6. HTML DOS POSTS\n// =========================================================\n\nconst listaHtml = posts\n  .map(post => `\n    <div style=\"margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ddd;\">\n      <strong>Post ID:</strong> ${post.post_id}<br>\n\n      <strong>Migration ID:</strong> ${post.migration_id}<br>\n\n      <strong>URL:</strong>\n      <a\n        href=\"${post.url_publica}\"\n        target=\"_blank\"\n      >\n        ${post.url_publica}\n      </a>\n    </div>\n  `)\n  .join('');\n\n\n// =========================================================\n// 7. CHECKPOINT\n// =========================================================\n\nconst statusCheckpoint =\n  checkpoint?.resultado ??\n  'NÃO INFORMADO';\n\nconst totalResolvidos =\n  checkpoint?.total_resolvidos ??\n  '-';\n\nconst totalCandidatos =\n  checkpoint?.total_candidatos ??\n  '-';\n\nconst paginaAtual =\n  checkpoint?.pagina_atual ??\n  '-';\n\n\n// =========================================================\n// 8. SAÍDA PARA GMAIL\n// =========================================================\n\nreturn [\n  {\n    json: {\n\n      assunto:\n        `Migração Featured concluída | ${posts.length} posts`,\n\n      total_migrados_lote:\n        posts.length,\n\n      checkpoint_status:\n        statusCheckpoint,\n\n      total_resolvidos:\n        totalResolvidos,\n\n      total_candidatos:\n        totalCandidatos,\n\n      pagina_atual:\n        paginaAtual,\n\n      posts,\n\n      html: `\n        <h2>Migração Featured concluída</h2>\n\n        <p>\n          <strong>Migrados nesta execução:</strong>\n          ${posts.length}<br>\n\n          <strong>Checkpoint:</strong>\n          ${statusCheckpoint}<br>\n\n          <strong>Resolvidos:</strong>\n          ${totalResolvidos}/${totalCandidatos}<br>\n\n          <strong>Página atual:</strong>\n          ${paginaAtual}\n        </p>\n\n        <h3>Posts para conferência visual</h3>\n\n        ${listaHtml}\n      `\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        -224
+      ],
+      "id": "e525ff27-f1ae-43c2-98cb-32357de35421",
+      "name": "Monta | Notificação Lote",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "077f3221-2aa5-42f3-b217-f928c5991e6e",
+                    "leftValue": "={{ $json.exclusao_acao }}",
+                    "rightValue": "REPETIR_GET",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REPETIR_GET"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6ef2db20-2bf9-45c5-9855-3394e589db2b",
+                    "leftValue": "={{ $json.exclusao_acao }}",
+                    "rightValue": "REPETIR_DELETE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REPETIR_DELETE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.exclusao_acao }}",
+                    "rightValue": "CONFIRMADA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "76a91ec3-fc14-481f-b3e7-e22ee017d365"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CONFIRMADA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        800
+      ],
+      "id": "96cea92c-7e21-4b17-b8df-23aed64b8626",
+      "name": "Switch | Ação após Confirmação"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2704,
+        912
+      ],
+      "id": "511d2f73-0ab0-4f85-9683-8f2f33903c90",
+      "name": "Wait Seguir... 20s",
+      "webhookId": "08147e91-9130-4904-91c0-c83feb614ec0"
     }
   ],
   "pinData": {
     "START": [
       {
         "json": {
-          "migration_id": 491,
-          "post_id": 6847,
-          "wp_media_id_original": 6891,
-          "wp_media_id_virtual": 89398,
-          "storage_provider": "cloudflare_r2",
-          "storage_url": "https://pub-28e4a7157d8a4d86a25b4ff5b4132517.r2.dev/pel/featured/5e32e36faeee4cdbb45f315f5a04fef8b86993c598acbde0465e841d30d636d9.jpg",
+          "migration_id": 511,
+          "post_id": 7137,
+          "wp_media_id_original": 7145,
+          "wp_media_id_virtual": 89654,
+          "storage_provider": "backblaze_b2",
+          "storage_url": "https://flow-b2-02-storage-proxy-hml.core360.workers.dev/pel/featured/ecaf3f448f655f6c4f8e51d03f8399e689f8eb40e80452d5e51e76512280a69e.jpg",
           "post_status": "publish",
           "associacao_wp_confirmada": true,
           "associacao_validada": true,
-          "media_virtual_url": "https://pub-28e4a7157d8a4d86a25b4ff5b4132517.r2.dev/pel/featured/5e32e36faeee4cdbb45f315f5a04fef8b86993c598acbde0465e841d30d636d9.jpg",
+          "media_virtual_url": "https://flow-b2-02-storage-proxy-hml.core360.workers.dev/pel/featured/ecaf3f448f655f6c4f8e51d03f8399e689f8eb40e80452d5e51e76512280a69e.jpg",
           "exclusao_liberada": true,
           "motivo_bloqueio": null
         },
@@ -645,16 +800,16 @@
       },
       {
         "json": {
-          "migration_id": 492,
-          "post_id": 6898,
-          "wp_media_id_original": 6902,
-          "wp_media_id_virtual": 89399,
+          "migration_id": 512,
+          "post_id": 7154,
+          "wp_media_id_original": 7162,
+          "wp_media_id_virtual": 89655,
           "storage_provider": "cloudflare_r2",
-          "storage_url": "https://pub-4fc4737db70147a8bec050dd7fb883d7.r2.dev/pel/featured/2629fae52ecdeead5437c7d0ad8f3c2208f430e0b7dd2bd57c08fa8ebcfecbed.jpg",
+          "storage_url": "https://pub-28e4a7157d8a4d86a25b4ff5b4132517.r2.dev/pel/featured/30b8fbfa2daff0be42a46dc4cda66fce279c038afd366a3aaefaea71a478eff1.jpg",
           "post_status": "publish",
           "associacao_wp_confirmada": true,
           "associacao_validada": true,
-          "media_virtual_url": "https://pub-4fc4737db70147a8bec050dd7fb883d7.r2.dev/pel/featured/2629fae52ecdeead5437c7d0ad8f3c2208f430e0b7dd2bd57c08fa8ebcfecbed.jpg",
+          "media_virtual_url": "https://pub-28e4a7157d8a4d86a25b4ff5b4132517.r2.dev/pel/featured/30b8fbfa2daff0be42a46dc4cda66fce279c038afd366a3aaefaea71a478eff1.jpg",
           "exclusao_liberada": true,
           "motivo_bloqueio": null
         },
@@ -664,16 +819,16 @@
       },
       {
         "json": {
-          "migration_id": 493,
-          "post_id": 6906,
-          "wp_media_id_original": 6907,
-          "wp_media_id_virtual": 89475,
+          "migration_id": 513,
+          "post_id": 7163,
+          "wp_media_id_original": 7169,
+          "wp_media_id_virtual": 89656,
           "storage_provider": "cloudflare_r2",
-          "storage_url": "https://pub-43dc3ba28cba479abf3287dc11405d82.r2.dev/pel/featured/d5a00dcebe0a12c3d5e18453c0231529af4526a3f2a0d692740ae938997d477b.jpg",
+          "storage_url": "https://pub-4fc4737db70147a8bec050dd7fb883d7.r2.dev/pel/featured/d8380549432772cacb45156a19b1c2d82ddfa2b634c49a1d8acfb4ecdf2de4a6.jpg",
           "post_status": "publish",
           "associacao_wp_confirmada": true,
           "associacao_validada": true,
-          "media_virtual_url": "https://pub-43dc3ba28cba479abf3287dc11405d82.r2.dev/pel/featured/d5a00dcebe0a12c3d5e18453c0231529af4526a3f2a0d692740ae938997d477b.jpg",
+          "media_virtual_url": "https://pub-4fc4737db70147a8bec050dd7fb883d7.r2.dev/pel/featured/d8380549432772cacb45156a19b1c2d82ddfa2b634c49a1d8acfb4ecdf2de4a6.jpg",
           "exclusao_liberada": true,
           "motivo_bloqueio": null
         },
@@ -796,17 +951,6 @@
         [
           {
             "node": "IF | Precisa Excluir Original?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait 20": {
-      "main": [
-        [
-          {
-            "node": "GET | Repete Confirma Exclusão Original",
             "type": "main",
             "index": 0
           }
@@ -988,22 +1132,11 @@
         ]
       ]
     },
-    "Wait ": {
-      "main": [
-        [
-          {
-            "node": "Loop | Exclusões",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "IF | Confirmação Pendente?": {
       "main": [
         [
           {
-            "node": "Wait 20",
+            "node": "Wait 120s1",
             "type": "main",
             "index": 0
           }
@@ -1021,7 +1154,76 @@
       "main": [
         [
           {
-            "node": "Wait ",
+            "node": "Switch | Ação após Confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 120s1": {
+      "main": [
+        [
+          {
+            "node": "GET | Repete Confirma Exclusão Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SP | Fecha Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Monta | Notificação Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta | Notificação Lote": {
+      "main": [
+        [
+          {
+            "node": "Enviar Notificação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch | Ação após Confirmação": {
+      "main": [
+        [
+          {
+            "node": "Wait 120s1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DELETE | Mídia Original",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Seguir... 20s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Seguir... 20s": {
+      "main": [
+        [
+          {
+            "node": "Loop | Exclusões",
             "type": "main",
             "index": 0
           }
@@ -1034,7 +1236,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a48fb28a-7151-42a8-9ceb-7f7b3fc2bccf",
+  "versionId": "cb3f928c-c56f-4b69-a1e9-aca611674de4",
   "meta": {
     "instanceId": "9f769af33e9c8cdfc44e726022a0e6b9f585fd6f2577f3c000a6028827d25ddd"
   },

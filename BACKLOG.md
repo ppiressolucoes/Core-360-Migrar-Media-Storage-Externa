@@ -2,17 +2,13 @@
 
 Atualizado em 2026-10-21.
 
-## P0 — Operação atual
+## P0 — Operação concluída
 
 ### Confirmar exclusão da migration 498 e fechar a página 79
 
-- **Estado:** em andamento.
-- **Evidência:** DELETE da mídia original 6952 retornou `deleted: true`.
-- **Pendência:** o GET posterior recebeu HTTP 429.
-- **Próxima ação:** aguardar o backoff e repetir somente o GET de
-  `/wp-json/wp/v2/media/6952`.
-- **Aceite:** resposta `404` com `rest_post_invalid_id`, auditoria final
-  confirmada, migrations 498/500/501 em `MIGRATED` e checkpoint na página 80.
+- **Estado:** concluído.
+- **Evidência:** migrations 498/500/501 concluídas e o checkpoint avançou nas
+  execuções posteriores até a página 82, último post 7185.
 
 ## P1 — Confiabilidade
 
@@ -31,10 +27,9 @@ Atualizado em 2026-10-21.
 - Respeitar `retry_after` da origem, com mínimo de 120 segundos para 429/504.
 - Repetir somente o GET enquanto o resultado for inconclusivo.
 - Limitar tentativas e persistir a pendência sem abortar itens independentes.
-- Incorporar `workflows/code/valida-exclusao-confirmada-retry.js` ao próximo
-  export completo do Sub 02.
-- Incorporar `workflows/code/monta-lote-conclusao-auditado.js` e impedir que a
-  saída `done` do loop conclua migrations sem auditoria 404 confirmada.
+- Limitar tentativas para impedir ciclos indefinidos entre GET e DELETE.
+- Unificar o primeiro validador e o validador de retry no mesmo contrato de
+  ações, reduzindo caminhos duplicados.
 
 ### Recuperação por item sem rollback do restante do lote
 
@@ -55,8 +50,8 @@ Atualizado em 2026-10-21.
 ### Sincronização dos workflows n8n
 
 - Reexportar o PAI após implantar o preflight definitivo.
-- Reexportar o Sub 02 após incorporar a versão evoluída de
-  `Valida | Exclusão Confirmada` ao workflow publicado.
+- O Sub 02 foi reexportado em 2026-10-21; repetir a captura após futuras
+  mudanças no retry ou na auditoria.
 - Confirmar que os IDs e versões dos exports oficiais correspondem aos workflows
   publicados no n8n após o fechamento da página 79.
 - Capturar `SHOW CREATE PROCEDURE` das SPs genéricas do ambiente ativo e comparar

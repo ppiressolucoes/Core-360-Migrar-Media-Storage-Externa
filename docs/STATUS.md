@@ -29,10 +29,12 @@ confirmação e retornou:
 Essa execução confirma o roteamento do `Valida | Exclusão Confirmada Retry`
 para o caminho `CONFIRMADA` do Switch.
 
-## Proteções pendentes de incorporação ao export
+## Export oficial do Sub 02
 
-- Reexportar o Sub 02 com o Switch das ações `REPETIR_GET`,
-  `REPETIR_DELETE` e `CONFIRMADA`.
-- Substituir o código de `Monta | Lote Conclusão` pela barreira disponível em
-  `workflows/code/monta-lote-conclusao-auditado.js`.
-- Validar o novo export com `python3 tools/validate_artifacts.py`.
+O export recebido em 2026-10-21 foi promovido para o repositório como versão
+oficial `cb3f928c-c56f-4b69-a1e9-aca611674de4`. Ele contém:
+
+- Switch das ações `REPETIR_GET`, `REPETIR_DELETE` e `CONFIRMADA`;
+- barreira auditada em `Monta | Lote Conclusão`;
+- fechamento do checkpoint;
+- notificação do lote.
