@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-21
+
+### Operação validada
+
+- fluxo PAI acionado pela agenda concluiu seis de seis candidatos;
+- checkpoint `FEATURED` avançou para a página 82 e último post 7185;
+- migration 516 confirmou a ausência da mídia original 7188 por
+  `404/rest_post_invalid_id`;
+- `Valida | Exclusão Confirmada Retry` produziu `exclusao_acao=CONFIRMADA` e
+  seguiu corretamente pelo Switch.
+
+### Proteção adicionada
+
+- código de barreira preparado para impedir que `Monta | Lote Conclusão`
+  envie à SP migrations sem auditoria final confirmada.
+
 ## 2026-10-20
 
 ### Corrigido
