@@ -29,6 +29,11 @@ O validador de retry deve produzir uma ação explícita:
 4. Itens existentes seguem para DELETE.
 5. Aguarde a auditoria final de todos os itens.
 6. Execute `SP | Conclui Migração Lote`.
+
+Antes do passo 6, `Monta | Lote Conclusão` deve exigir, para cada migration do
+lote, `auditoria_confirmada=true`, `auditoria_status=EXCLUIDA`, HTTP 404 e
+`auditoria_origin_code=rest_post_invalid_id`. A saída `done` do loop, sozinha,
+não comprova que a mídia original foi excluída.
 7. Execute `SP | Fecha Checkpoint`.
 
 Não reexecute o Sub 01, `SP | Registra Lote` ou uploads já conciliados.

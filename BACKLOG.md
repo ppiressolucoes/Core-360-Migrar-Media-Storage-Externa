@@ -33,6 +33,8 @@ Atualizado em 2026-10-21.
 - Limitar tentativas e persistir a pendência sem abortar itens independentes.
 - Incorporar `workflows/code/valida-exclusao-confirmada-retry.js` ao próximo
   export completo do Sub 02.
+- Incorporar `workflows/code/monta-lote-conclusao-auditado.js` e impedir que a
+  saída `done` do loop conclua migrations sem auditoria 404 confirmada.
 
 ### Recuperação por item sem rollback do restante do lote
 

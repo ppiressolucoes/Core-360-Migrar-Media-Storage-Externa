@@ -46,3 +46,5 @@
   `tools/validate_artifacts.py`.
 - retry de exclusão evoluído para classificar GET 200 como
   `REPETIR_DELETE`, preservando 429/504 como `REPETIR_GET`.
+- barreira de conclusão do Sub 02 adicionada para impedir `MIGRATED` sem
+  auditoria final `404/rest_post_invalid_id` de todos os itens do lote.

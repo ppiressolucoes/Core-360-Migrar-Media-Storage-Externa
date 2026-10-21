@@ -8,7 +8,7 @@ que ainda exigem um novo export.
 | --- | --- | --- |
 | `PEL _ Migração Featured IMG _ PAI.json` | Reexportar | Ainda contém nomes Cloudinary no registro/recuperação do lote e não inclui o preflight canônico definitivo. |
 | `PEL _ Featured Associação WP _ Sub 01 Fluxo.json` | Revisar versão publicada | Contém o contrato genérico usado na associação; confirmar o version ID após o fechamento do lote. |
-| `PEL _ Featured Exclusão e Auditoria _ Sub 02.json` | Reexportar | A evolução de 504/429 está em `workflows/code/valida-exclusao-confirmada.js`. |
+| `PEL _ Featured Exclusão e Auditoria _ Sub 02.json` | Reexportar | As evoluções do retry e da barreira de conclusão estão em `workflows/code/valida-exclusao-confirmada-retry.js` e `workflows/code/monta-lote-conclusao-auditado.js`. |
 | `SUB _ Midia Externa Cloudinary.json` | Reexportar | O nome e parte do contrato ainda representam a fase somente Cloudinary. |
 | `CORE _ Cloudinary Gestão de Contas.json` | Sem divergência registrada | Continua específico da gestão de contas Cloudinary. |
 
