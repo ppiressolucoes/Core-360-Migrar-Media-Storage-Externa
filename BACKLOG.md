@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-10-20.
+Atualizado em 2026-10-21.
 
 ## P0 — Operação atual
 
@@ -31,6 +31,8 @@ Atualizado em 2026-10-20.
 - Respeitar `retry_after` da origem, com mínimo de 120 segundos para 429/504.
 - Repetir somente o GET enquanto o resultado for inconclusivo.
 - Limitar tentativas e persistir a pendência sem abortar itens independentes.
+- Incorporar `workflows/code/valida-exclusao-confirmada-retry.js` ao próximo
+  export completo do Sub 02.
 
 ### Recuperação por item sem rollback do restante do lote
 

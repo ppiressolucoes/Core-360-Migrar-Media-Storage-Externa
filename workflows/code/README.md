@@ -15,5 +15,8 @@ O arquivo `valida-exclusao-confirmada.js` na raiz registra a evolução aplicada
 durante a retomada do lote e ainda precisa ser incorporado a um novo export do
 Sub 02.
 
+O arquivo `valida-exclusao-confirmada-retry.js` registra a evolução do retry:
+`HTTP 200` produz `REPETIR_DELETE`, enquanto 429/504 produzem `REPETIR_GET`.
+
 Não edite simultaneamente o JSON e sua cópia extraída sem revalidar a
 correspondência com `tools/validate_artifacts.py`.

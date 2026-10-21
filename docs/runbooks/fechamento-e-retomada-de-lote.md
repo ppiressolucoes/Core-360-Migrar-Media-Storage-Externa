@@ -15,6 +15,12 @@ Classifique a resposta do GET de `/wp-json/wp/v2/media/{id}`:
 Nunca repita o DELETE apenas porque a resposta anterior foi 429 ou 504. Primeiro
 consulte a mídia. O DELETE só deve ser repetido depois de um GET 200.
 
+O validador de retry deve produzir uma ação explícita:
+
+- `CONFIRMADA`: continuar para a auditoria final;
+- `REPETIR_GET`: aguardar `confirmacao_retry_after` e consultar novamente;
+- `REPETIR_DELETE`: aguardar, repetir o DELETE e então consultar novamente.
+
 ## Retomada idempotente do Sub 02
 
 1. Use como entrada o lote confirmado pelo Sub 01.

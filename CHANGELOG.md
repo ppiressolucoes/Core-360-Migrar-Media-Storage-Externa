@@ -44,3 +44,5 @@
   storage;
 - validador de integridade dos artefatos adicionado em
   `tools/validate_artifacts.py`.
+- retry de exclusão evoluído para classificar GET 200 como
+  `REPETIR_DELETE`, preservando 429/504 como `REPETIR_GET`.
