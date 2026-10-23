@@ -61,6 +61,11 @@ duplicados. A retomada normal requer encaminhar as migrations existentes ao
 Sub 02. Um encerramento administrativo sem essa etapa seria uma exceção à
 regra atual de auditoria e precisaria ficar explicitamente marcado como tal.
 
+Este ambiente cloud não recebeu conexão, cliente ou variáveis de banco para
+executar SQL no MySQL ativo. A configuração do ambiente também não declara
+acesso ao banco. A consulta em `database/recovery/` foi preparada para execução
+no ambiente com acesso; sua saída ainda não foi fornecida.
+
 As saídas anteriores do Sub 02 não estavam disponíveis nesta revisão. Uma
 tentativa de GET público, somente leitura, para as mídias originais 7701, 7709
 e 7717 a partir deste ambiente recebeu `CONNECT tunnel failed, response 403`
