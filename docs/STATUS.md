@@ -1,7 +1,23 @@
 # Estado operacional
 
 Última evidência operacional recebida: 2026-10-23. A resposta de
-`SP | Fecha Checkpoint` confirmou o avanço para a página 88.
+`SP | Fecha Checkpoint` confirmou o avanço para a página 89, último post 7877.
+
+## Página 88: processamento concluído
+
+O PAI recebeu seis candidatos: posts 7749, 7762, 7841, 7849, 7864 e 7877;
+`per_page=6`, `limite_execucao=3`, último post da página 7877. A primeira
+reserva retornou `tem_reserva=true`, `total_reservado=3` e as migrations 553,
+554 e 555, correspondentes aos posts 7749, 7762 e 7841, em `PROCESSING` às
+15:13:56. O primeiro fechamento retornou `AGUARDANDO`, três de seis
+resolvidos, mantendo página 88 e último post 7740.
+
+Em execução posterior, `SP | Fecha Checkpoint` retornou `AVANCADO`, seis de
+seis resolvidos, página 89, último post 7877 e
+`updated_at=2026-10-23 15:41:01`. A saída da segunda reserva e uma leitura
+SQL separada do checkpoint não foram fornecidas. O avanço é confirmado pelo
+resultado da SP; a contagem não identifica individualmente o status final de
+cada migration.
 
 ## Página 87: recuperação concluída por exceção administrativa
 

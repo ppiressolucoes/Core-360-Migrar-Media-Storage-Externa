@@ -39,6 +39,18 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   A limpeza das originais segue pendente.
 - **Procedimento:** [diagnóstico e recuperação da página 87](docs/runbooks/pagina-87-sem-reserva.md).
 
+## P0 — Processamento da página 88 concluído
+
+- **Estado:** concluído em 2026-10-23. O PAI recebeu seis candidatos, com
+  `per_page=6` e `limite_execucao=3`. A primeira reserva retornou as migrations
+  553, 554 e 555 em `PROCESSING`, para os posts 7749, 7762 e 7841.
+- **Fechamento parcial:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
+  `total_resolvidos=3/6`, `pagina_atual=88` e `ultimo_post_id=7740`.
+- **Fechamento final:** em execução posterior, a SP retornou `AVANCADO`,
+  `total_resolvidos=6/6`, `pagina_atual=89`, `ultimo_post_id=7877` e
+  `updated_at=2026-10-23 15:41:01`. Não foi enviada a saída da segunda
+  reserva nem leitura SQL separada do checkpoint.
+
 ## P1 — Confiabilidade
 
 ### Não encerrar silenciosamente sem reserva e com fechamento pendente

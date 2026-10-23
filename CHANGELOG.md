@@ -2,6 +2,16 @@
 
 ## 2026-10-23
 
+### Processamento da página 88
+
+- o PAI recebeu seis candidatos e reservou inicialmente três, migrations
+  553–555, respeitando `limite_execucao=3`;
+- o primeiro fechamento retornou `AGUARDANDO`, com três de seis candidatos
+  resolvidos e checkpoint ainda na página 88, último post 7740;
+- o fechamento posterior retornou `AVANCADO`, seis de seis resolvidos, página
+  89, último post 7877 e `updated_at=2026-10-23 15:41:01`; a saída da segunda
+  reserva e leitura SQL separada do checkpoint não foram fornecidas.
+
 ### Recuperação operacional da página 87
 
 - o operador autorizou encerrar as migrations 547–549 sem verificar nem
