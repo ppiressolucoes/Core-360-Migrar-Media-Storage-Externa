@@ -21,6 +21,13 @@ executa nem substitui procedures automaticamente.
 `legacy/` mantém a antiga `SP_WP_registra_cloudinary_lote`. Ela não deve ser
 usada por novos lotes porque não implementa o contrato genérico de storage.
 
+## Recuperação pontual
+
+`recovery/pagina87-contexto-pendente.sql` contém consultas somente leitura
+para conferir o checkpoint e as migrations 547–549 antes da retomada da
+página 87. A consulta não libera o Sub 02 nem conclui migrations sozinha;
+consulte também `docs/runbooks/pagina-87-sem-reserva.md`.
+
 ## Implantação
 
 Revise o `DEFINER` conforme o ambiente antes de aplicar. A implantação deve ser

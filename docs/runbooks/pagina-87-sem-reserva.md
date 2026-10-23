@@ -101,6 +101,11 @@ automaticamente as migrations 547–549, que já têm mídia virtual.
    `7740`; a paginação por data pode mudar entre execuções.
 4. Ler as migrations desses seis posts, incluindo registros de mídia virtual:
 
+   A consulta direcionada da página 87 está em
+   [`database/recovery/pagina87-contexto-pendente.sql`](../../database/recovery/pagina87-contexto-pendente.sql).
+   Ela é somente leitura, confere os IDs originais e virtuais das migrations
+   547–549 e sinaliza divergências antes de qualquer retomada.
+
    ```sql
    SELECT id, post_id, wp_media_id, wp_media_id_virtual,
           status, storage_provider, updated_at
