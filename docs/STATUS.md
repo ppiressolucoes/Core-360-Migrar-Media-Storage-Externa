@@ -1,6 +1,19 @@
 # Estado operacional
 
-Última atualização: 2026-10-21.
+Última confirmação operacional anterior: 2026-10-21. Relato em apuração
+atualizado em 2026-10-23.
+
+## Relato posterior em apuração
+
+Em 2026-10-23 foi relatada uma execução agendada incompleta do PAI na página
+87: seis candidatos, nenhuma reserva elegível e último post da página 7740.
+O fechamento retornou `AGUARDANDO`: três dos seis candidatos estão resolvidos;
+na resposta recebida, o checkpoint permaneceu na página 87 e o ponteiro em
+7684. Os três itens pendentes e o estado mais recente do banco ainda precisam
+ser identificados.
+Consultar [diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md) antes
+de retomar. O checkpoint da página 82 abaixo é o último estado **confirmado
+neste documento**, não uma leitura atual.
 
 ## Checkpoint confirmado
 

@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-10-21.
+Atualizado em 2026-10-23.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -13,7 +13,33 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - **Evidência:** migrations 498/500/501 concluídas e o checkpoint avançou nas
   execuções posteriores até a página 82, último post 7185.
 
+## P0 — Recuperação em diagnóstico
+
+### Página 87: reserva sem candidatos elegíveis
+
+- **Estado:** fechamento bloqueado (`AGUARDANDO`) em 2026-10-23; três dos seis
+  candidatos permanecem sem resolução confirmada. Identidades e etapas desses
+  três itens ainda não foram informadas.
+- **Evidência recebida:** `Normaliza | Lote Reservado` retornou
+  `SEM_CANDIDATOS_ELEGIVEIS`, `total_reservado=0`, `total_candidatos=6`,
+  `pagina_processada=87` e `ultimo_post_pagina=7740`.
+- **Fechamento recebido:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
+  `total_resolvidos=3`, `pagina_atual=87` e `ultimo_post_id=7684`.
+- **Próximo passo:** classificar os seis pares de post/mídia, conferir o
+  checkpoint atual e o resultado de `SP | Fecha Checkpoint`. Retomar somente os
+  itens pendentes ou fechar a página se todos estiverem resolvidos.
+- **Procedimento:** [diagnóstico e recuperação da página 87](docs/runbooks/pagina-87-sem-reserva.md).
+
 ## P1 — Confiabilidade
+
+### Não encerrar silenciosamente sem reserva e com fechamento pendente
+
+- Após `SP | Fecha Checkpoint`, tratar `AGUARDANDO` como pendência explícita,
+  com identificação das migrations não resolvidas e sinalização operacional.
+- Distinguir uma página integralmente resolvida de uma página bloqueada em
+  `PROCESSING` ou por divergência entre elegibilidade e resposta da SP.
+- Validar a alteração contra a versão ativa do PAI antes de reexportar, pois o
+  snapshot atual possui divergências conhecidas.
 
 ### Preflight permanente do storage canônico
 
