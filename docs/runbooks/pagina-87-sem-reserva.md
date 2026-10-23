@@ -58,7 +58,9 @@ tentativa de GET público, somente leitura, para as mídias originais 7701, 7709
 e 7717 a partir deste ambiente recebeu `CONNECT tunnel failed, response 403`
 do proxy de rede. Esse erro ocorreu antes de uma resposta do WordPress; não
 informa se as mídias existem. Nenhum DELETE ou comando de alteração no banco
-foi executado nesta investigação.
+foi executado nesta investigação. O operador informou que não consegue
+executar os três GETs pelo n8n neste momento. A recuperação fica pendente dessa
+verificação; não há confirmação de exclusão, conclusão ou avanço da página 87.
 
 ## O que o export permite afirmar
 
