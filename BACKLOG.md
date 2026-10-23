@@ -13,7 +13,7 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - **Evidência:** migrations 498/500/501 concluídas e o checkpoint avançou nas
   execuções posteriores até a página 82, último post 7185.
 
-## P0 — Fechamento da página 87 pendente
+## P0 — Recuperação da página 87 concluída
 
 ### Página 87: reserva sem candidatos elegíveis
 
@@ -21,17 +21,17 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   A captura do resultado do `CALL` mostra 547, 548 e 549 em `SKIPPED`, com
   `EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
   `updated_at=2026-10-23 15:06:05`. As migrations 550–552 estavam em
-  `MIGRATED` na última leitura recebida. Falta executar novamente o PAI e
-  confirmar o fechamento do checkpoint.
+  `MIGRATED` na última leitura recebida. A execução posterior do PAI fechou
+  a página 87.
 - **Evidência recebida:** `Normaliza | Lote Reservado` retornou
   `SEM_CANDIDATOS_ELEGIVEIS`, `total_reservado=0`, `total_candidatos=6`,
   `pagina_processada=87` e `ultimo_post_pagina=7740`.
-- **Fechamento recebido:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
+- **Fechamento inicial:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
   `total_resolvidos=3`, `pagina_atual=87` e `ultimo_post_id=7684`.
-- **Próximo passo:** iniciar o PAI desde o começo, com nova leitura dos
-  candidatos, e conferir `SP | Fecha Checkpoint` e o checkpoint no banco. Se a
-  página ainda contiver os mesmos seis candidatos, esperar `AVANCADO`, página
-  88 e último post 7740; se não, investigar o novo conjunto antes de agir.
+- **Fechamento após a exceção:** `SP | Fecha Checkpoint` retornou `AVANCADO`,
+  `total_candidatos=6`, `total_resolvidos=6`, `pagina_atual=88`,
+  `ultimo_post_id=7740` e `updated_at=2026-10-23 15:11:49`. Não foi enviada
+  uma leitura SQL separada do checkpoint.
 - **Decisão:** o operador autorizou encerrar sem verificar nem excluir as
   originais. O `CALL` da rotina em
   `database/recovery/pagina87-liberacao-excepcional.sql` foi aplicado no banco
@@ -86,6 +86,9 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - Exigir comparação por SHA-256, provider, key e asset antes da exclusão.
 - Verificar posteriormente as originais 7701, 7709 e 7717 da página 87 e
   decidir sua limpeza; o encerramento administrativo não comprova exclusão.
+- Confirmar se a procedure pontual
+  `SP_WP_excecao_p87_origem_nao_verificada` foi removida; a captura do `CALL`
+  não comprovou a execução do `DROP PROCEDURE`.
 
 ### Sincronização dos workflows n8n
 

@@ -1,9 +1,9 @@
 # Estado operacional
 
-Última evidência operacional recebida: 2026-10-23. O checkpoint da página 87
-ainda precisa de nova confirmação após a exceção administrativa.
+Última evidência operacional recebida: 2026-10-23. A resposta de
+`SP | Fecha Checkpoint` confirmou o avanço para a página 88.
 
-## Página 87: exceção aplicada, fechamento pendente
+## Página 87: recuperação concluída por exceção administrativa
 
 Em 2026-10-23 foi relatada uma execução agendada incompleta do PAI na página
 87: seis candidatos, nenhuma reserva elegível e último post da página 7740.
@@ -17,15 +17,15 @@ O operador autorizou encerrar sem verificar nem excluir as originais 7701,
 SP_WP_excecao_p87_origem_nao_verificada()` no banco ativo mostra as migrations
 547, 548 e 549 em `SKIPPED`, com motivo
 `EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
-`updated_at=2026-10-23 15:06:05`. Isso confirma a alteração de status, mas
-não comprova a exclusão das originais nem o avanço do checkpoint. A última
-leitura do checkpoint recebida foi página 87, ponteiro 7684, **antes** do
-`CALL`. A captura não confirma se o `DROP PROCEDURE` posterior foi executado.
-
-Próxima ação: iniciar o PAI desde o começo, conferir os candidatos atuais e a
-saída de `SP | Fecha Checkpoint`, depois ler o checkpoint no banco. Consultar
-[diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md). O checkpoint da
-página 82 abaixo é uma evidência histórica, não uma leitura atual.
+`updated_at=2026-10-23 15:06:05`. Em execução posterior do PAI,
+`SP | Fecha Checkpoint` retornou `AVANCADO`, `total_candidatos=6`,
+`total_resolvidos=6`, `pagina_atual=88`, `ultimo_post_id=7740` e
+`updated_at=2026-10-23 15:11:49`. A resposta da SP comprova o fechamento;
+não foi enviada leitura SQL separada do checkpoint. A exceção não comprova a
+exclusão das originais. A captura anterior também não confirma se o
+`DROP PROCEDURE` posterior foi executado. Essas duas verificações permanecem
+no backlog de manutenção. Consultar [diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md).
+O checkpoint da página 82 abaixo é uma evidência histórica.
 
 ## Checkpoint histórico de 2026-10-21
 

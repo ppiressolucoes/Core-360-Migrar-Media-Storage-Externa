@@ -32,9 +32,10 @@ consulte também `docs/runbooks/pagina-87-sem-reserva.md`.
 para a página 87: marca somente 547–549 como `SKIPPED` após verificar o estado
 exato dos seis registros e do checkpoint. Não apaga mídia original nem avança
 o checkpoint. O operador executou o `CALL` no banco ativo em 2026-10-23; a
-captura recebida mostrou as três migrations em `SKIPPED`. Uma nova execução do
-PAI e a confirmação do checkpoint ainda estão pendentes. A captura não confirma
-se o `DROP PROCEDURE` foi executado.
+captura recebida mostrou as três migrations em `SKIPPED`. Na execução posterior
+do PAI, `SP | Fecha Checkpoint` retornou `AVANCADO`, página 88, último post
+7740 e seis de seis candidatos resolvidos. A captura não confirma se o
+`DROP PROCEDURE` foi executado.
 
 ## Implantação
 

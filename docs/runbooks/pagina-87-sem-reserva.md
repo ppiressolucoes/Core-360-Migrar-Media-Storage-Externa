@@ -208,7 +208,7 @@ URL do storage canônico e liberação explícita do Sub 01. Atualizar `docs/STA
 
 O operador escolheu encerrar a página sem verificar nem excluir as mídias
 originais. Isso deixa a limpeza das originais 7701, 7709 e 7717 pendente e não
-equivale a uma conclusão auditada pelo Sub 02. A leitura atual recebida do
+equivale a uma conclusão auditada pelo Sub 02. A leitura anterior recebida do
 banco confirmou checkpoint 87/7684, migrations 547–549 em `PROCESSING`, e
 550–552 em `MIGRATED`; uma nova consulta confirmou que a 549 usa
 `cloudinary`. Esses dados alimentam
@@ -226,20 +226,22 @@ ativo. A captura do resultado mostra 547, 548 e 549 em `SKIPPED`, todas com
 posterior pendente;` e `updated_at=2026-10-23 15:06:05`. A captura mostra
 `DROP PROCEDURE SP_WP_excecao_p87_origem_nao_verificada` no editor, mas não
 confirma que esse comando foi executado. O último checkpoint lido antes do
-`CALL` era página 87, ponteiro 7684. Não há leitura posterior recebida.
+`CALL` era página 87, ponteiro 7684.
 
-Próximos passos:
+Na execução posterior do PAI, `SP | Fecha Checkpoint` retornou `AVANCADO`,
+`total_candidatos=6`, `total_resolvidos=6`, `pagina_atual=88`,
+`ultimo_post_id=7740` e `updated_at=2026-10-23 15:11:49`. A recuperação da
+página 87 está concluída pelo resultado da SP. Não foi enviada leitura SQL
+separada do checkpoint nem nova saída de `Monta | Candidatos [5]`.
 
-1. Iniciar o PAI desde o começo, permitindo que ele consulte novamente a
-   página atual do WordPress. Não reutilizar a lista antiga de candidatos para
-   avançar o checkpoint diretamente.
-2. Conferir o resultado de `SP | Fecha Checkpoint`. Se a página ainda tiver os
-   seis candidatos observados, esperar `AVANCADO`, página 88 e ponteiro 7740.
-   Se retornar `AGUARDANDO` ou a página tiver mudado, investigar os candidatos
-   atuais; não forçar `SP_WP_avanca_checkpoint_featured`.
-3. Confirmar o estado persistido com a consulta de checkpoint desta página.
-   Se a procedure pontual ainda existir, concluir a limpeza com o
+Passos executados e verificações remanescentes:
+
+1. O PAI foi executado após a exceção, e o fechamento retornou `AVANCADO`
+   para os seis candidatos. Não foi necessário forçar o checkpoint.
+2. Se for necessária auditoria independente do estado persistido, usar a
+   consulta de checkpoint desta página. Se a procedure pontual ainda existir,
+   concluir a limpeza com o
    `DROP PROCEDURE` previsto no script, após conferir que não há nova chamada
    em andamento.
-4. Manter a verificação e eventual limpeza das originais como pendência
+3. Manter a verificação e eventual limpeza das originais como pendência
    separada, sem confundir o status `SKIPPED` com exclusão confirmada.

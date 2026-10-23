@@ -10,8 +10,10 @@
   mostrou as três migrations em `SKIPPED`, com o motivo
   `EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
   `updated_at=2026-10-23 15:06:05`;
-- a última leitura recebida do checkpoint foi página 87, último post 7684,
-  antes do `CALL`; nova execução do PAI e confirmação do avanço estão pendentes;
+- após o `CALL`, `SP | Fecha Checkpoint` retornou `AVANCADO`, seis de seis
+  candidatos resolvidos, página 88, último post 7740 e
+  `updated_at=2026-10-23 15:11:49`; não foi enviada leitura SQL separada do
+  checkpoint;
 - a exclusão das originais e a execução de `DROP PROCEDURE` não foram
   confirmadas pela captura.
 
