@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-23
+
+### Recuperação operacional da página 87
+
+- o operador autorizou encerrar as migrations 547–549 sem verificar nem
+  excluir as mídias originais 7701, 7709 e 7717;
+- a captura do resultado de `CALL SP_WP_excecao_p87_origem_nao_verificada()`
+  mostrou as três migrations em `SKIPPED`, com o motivo
+  `EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
+  `updated_at=2026-10-23 15:06:05`;
+- a última leitura recebida do checkpoint foi página 87, último post 7684,
+  antes do `CALL`; nova execução do PAI e confirmação do avanço estão pendentes;
+- a exclusão das originais e a execução de `DROP PROCEDURE` não foram
+  confirmadas pela captura.
+
 ## 2026-10-21
 
 ### Operação validada

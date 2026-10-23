@@ -28,11 +28,13 @@ para conferir o checkpoint e as migrations 547–549 antes da retomada da
 página 87. A consulta não libera o Sub 02 nem conclui migrations sozinha;
 consulte também `docs/runbooks/pagina-87-sem-reserva.md`.
 
-`recovery/pagina87-liberacao-excepcional.sql` prepara a exceção autorizada
+`recovery/pagina87-liberacao-excepcional.sql` implementa a exceção autorizada
 para a página 87: marca somente 547–549 como `SKIPPED` após verificar o estado
 exato dos seis registros e do checkpoint. Não apaga mídia original nem avança
-o checkpoint. Requer execução no banco ativo e nova execução do PAI; não foi
-executada na preparação deste artefato.
+o checkpoint. O operador executou o `CALL` no banco ativo em 2026-10-23; a
+captura recebida mostrou as três migrations em `SKIPPED`. Uma nova execução do
+PAI e a confirmação do checkpoint ainda estão pendentes. A captura não confirma
+se o `DROP PROCEDURE` foi executado.
 
 ## Implantação
 

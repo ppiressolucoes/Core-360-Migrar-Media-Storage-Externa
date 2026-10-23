@@ -48,10 +48,11 @@ Uma leitura de `WP_migracao_featured` fornecida em seguida mostrou:
 
 Os seis `wp_media_id` recebidos do WordPress são IDs de mídia **virtual**.
 A SP de reserva os exclui por já constarem em `wp_media_id_virtual`, mesmo
-quando a migration ainda está em `PROCESSING`. A SP de fechamento só considera
-as migrations 550–552 resolvidas. As migrations 547–549 precisam de retomada
-ou auditoria; mídia virtual registrada não prova exclusão da mídia original.
-Não considerar a página concluída ou recuperada com base apenas nessas saídas.
+quando a migration ainda está em `PROCESSING`. A SP de fechamento considerou
+apenas as migrations 550–552 resolvidas **na chamada anterior à exceção**.
+As migrations 547–549 precisavam de retomada ou decisão administrativa;
+mídia virtual registrada não prova exclusão da mídia original. As saídas
+acima não confirmam avanço da página.
 
 Uma alteração isolada de `PROCESSING` para `PENDING` ou `ERROR` no banco não
 libera essas migrations para a reserva: o bloqueio por `wp_media_id_virtual`
@@ -63,17 +64,17 @@ regra atual de auditoria e precisaria ficar explicitamente marcado como tal.
 
 Este ambiente cloud não recebeu conexão, cliente ou variáveis de banco para
 executar SQL no MySQL ativo. A configuração do ambiente também não declara
-acesso ao banco. A consulta em `database/recovery/` foi preparada para execução
-no ambiente com acesso; sua saída ainda não foi fornecida.
+acesso ao banco. As leituras e o `CALL` descritos abaixo foram executados pelo
+operador no ambiente com acesso; suas saídas foram fornecidas nesta conversa.
 
 As saídas anteriores do Sub 02 não estavam disponíveis nesta revisão. Uma
 tentativa de GET público, somente leitura, para as mídias originais 7701, 7709
 e 7717 a partir deste ambiente recebeu `CONNECT tunnel failed, response 403`
 do proxy de rede. Esse erro ocorreu antes de uma resposta do WordPress; não
-informa se as mídias existem. Nenhum DELETE ou comando de alteração no banco
-foi executado nesta investigação. O operador informou que não consegue
-executar os três GETs pelo n8n neste momento. A recuperação fica pendente dessa
-verificação; não há confirmação de exclusão, conclusão ou avanço da página 87.
+informa se as mídias existem. Nenhum DELETE foi confirmado. O operador informou
+que não consegue executar os três GETs pelo n8n neste momento e autorizou a
+exceção administrativa descrita abaixo. O `CALL` alterou os status no banco;
+ainda não há confirmação de exclusão das originais ou avanço da página 87.
 
 ## O que o export permite afirmar
 
@@ -95,7 +96,7 @@ reimportar o fluxo. A procedure
 retorna `PROCESSING` com `wp_media_id_virtual IS NULL`; ela não recupera
 automaticamente as migrations 547–549, que já têm mídia virtual.
 
-## Coleta segura antes de retomar
+## Coleta segura antes de retomar pelo fluxo normal
 
 1. Guardar a saída de `Monta | Candidatos [5]` com os seis pares e `limite`, a
    resposta bruta de `SP | Reserva Lote`, o ramo percorrido em `If` e as saídas
@@ -175,7 +176,7 @@ automaticamente as migrations 547–549, que já têm mídia virtual.
    ORDER BY c.post_id;
    ```
 
-## Decisão de recuperação
+## Decisão de recuperação pelo fluxo normal
 
 | Evidência | Ação |
 | --- | --- |
@@ -213,26 +214,32 @@ banco confirmou checkpoint 87/7684, migrations 547–549 em `PROCESSING`, e
 `cloudinary`. Esses dados alimentam
 [`pagina87-liberacao-excepcional.sql`](../../database/recovery/pagina87-liberacao-excepcional.sql).
 
-A rotina preparada altera somente 547–549 para `SKIPPED`, com motivo explícito
-em `error_message`, e aborta se o checkpoint, os IDs, os providers, os estados
+A rotina altera somente 547–549 para `SKIPPED`, com motivo explícito em
+`error_message`, e aborta se o checkpoint, os IDs, os providers, os estados
 ou os horários observados mudarem. Ela não atribui `MIGRATED`, não exclui
-arquivos e não avança o checkpoint. Não foi executada neste ambiente porque
-não existe conexão com o MySQL ativo.
-Se a chamada sinalizar divergência, a transação é revertida; conferir novamente
-o estado antes de ajustar o procedimento. Dependendo de como o cliente SQL
-interrompe a execução, a procedure pontual desta operação pode permanecer
-criada e deve ser removida antes de uma nova tentativa.
+arquivos e não avança o checkpoint. Não foi executada **neste ambiente cloud**,
+que não tem conexão com o MySQL ativo.
 
-Após executar a rotina em um ambiente com acesso ao banco:
+O operador executou `CALL SP_WP_excecao_p87_origem_nao_verificada()` no banco
+ativo. A captura do resultado mostra 547, 548 e 549 em `SKIPPED`, todas com
+`error_message` iniciado por `EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria
+posterior pendente;` e `updated_at=2026-10-23 15:06:05`. A captura mostra
+`DROP PROCEDURE SP_WP_excecao_p87_origem_nao_verificada` no editor, mas não
+confirma que esse comando foi executado. O último checkpoint lido antes do
+`CALL` era página 87, ponteiro 7684. Não há leitura posterior recebida.
 
-1. Conferir que as três linhas retornaram `SKIPPED` com o motivo
-   `EXCECAO_P87_ORIGEM_NAO_VERIFICADA`.
-2. Iniciar o PAI desde o começo, permitindo que ele consulte novamente a
+Próximos passos:
+
+1. Iniciar o PAI desde o começo, permitindo que ele consulte novamente a
    página atual do WordPress. Não reutilizar a lista antiga de candidatos para
    avançar o checkpoint diretamente.
-3. Conferir o resultado de `SP | Fecha Checkpoint`. Se a página ainda tiver os
+2. Conferir o resultado de `SP | Fecha Checkpoint`. Se a página ainda tiver os
    seis candidatos observados, esperar `AVANCADO`, página 88 e ponteiro 7740.
    Se retornar `AGUARDANDO` ou a página tiver mudado, investigar os candidatos
    atuais; não forçar `SP_WP_avanca_checkpoint_featured`.
+3. Confirmar o estado persistido com a consulta de checkpoint desta página.
+   Se a procedure pontual ainda existir, concluir a limpeza com o
+   `DROP PROCEDURE` previsto no script, após conferir que não há nova chamada
+   em andamento.
 4. Manter a verificação e eventual limpeza das originais como pendência
    separada, sem confundir o status `SKIPPED` com exclusão confirmada.

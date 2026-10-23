@@ -1,9 +1,9 @@
 # Estado operacional
 
-Última confirmação operacional anterior: 2026-10-21. Relato em apuração
-atualizado em 2026-10-23.
+Última evidência operacional recebida: 2026-10-23. O checkpoint da página 87
+ainda precisa de nova confirmação após a exceção administrativa.
 
-## Relato posterior em apuração
+## Página 87: exceção aplicada, fechamento pendente
 
 Em 2026-10-23 foi relatada uma execução agendada incompleta do PAI na página
 87: seis candidatos, nenhuma reserva elegível e último post da página 7740.
@@ -12,16 +12,22 @@ na resposta recebida, o checkpoint permaneceu na página 87 e o ponteiro em
 7684. A leitura do banco fornecida depois identificou 547, 548 e 549 em
 `PROCESSING` com mídia virtual; 550, 551 e 552 estão em `MIGRATED`. A exclusão
 e auditoria das mídias originais das três pendentes ainda não foi confirmada.
-O operador não consegue executar agora os GETs de verificação dos originais
-7701, 7709 e 7717 pelo n8n; a recuperação permanece pendente.
-Foi autorizada uma exceção administrativa para encerrar sem verificar a origem.
-O script de liberação foi preparado, mas não aplicado ao banco; o checkpoint
-e os status informados acima continuam sendo a última evidência recebida.
-Consultar [diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md) antes
-de retomar. O checkpoint da página 82 abaixo é o último estado **confirmado
-neste documento**, não uma leitura atual.
+O operador autorizou encerrar sem verificar nem excluir as originais 7701,
+7709 e 7717. A captura do resultado do `CALL
+SP_WP_excecao_p87_origem_nao_verificada()` no banco ativo mostra as migrations
+547, 548 e 549 em `SKIPPED`, com motivo
+`EXCECAO_P87_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
+`updated_at=2026-10-23 15:06:05`. Isso confirma a alteração de status, mas
+não comprova a exclusão das originais nem o avanço do checkpoint. A última
+leitura do checkpoint recebida foi página 87, ponteiro 7684, **antes** do
+`CALL`. A captura não confirma se o `DROP PROCEDURE` posterior foi executado.
 
-## Checkpoint confirmado
+Próxima ação: iniciar o PAI desde o começo, conferir os candidatos atuais e a
+saída de `SP | Fecha Checkpoint`, depois ler o checkpoint no banco. Consultar
+[diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md). O checkpoint da
+página 82 abaixo é uma evidência histórica, não uma leitura atual.
+
+## Checkpoint histórico de 2026-10-21
 
 - Processo: `FEATURED`.
 - Resultado: `AVANCADO`.
