@@ -53,6 +53,14 @@ as migrations 550–552 resolvidas. As migrations 547–549 precisam de retomada
 ou auditoria; mídia virtual registrada não prova exclusão da mídia original.
 Não considerar a página concluída ou recuperada com base apenas nessas saídas.
 
+Uma alteração isolada de `PROCESSING` para `PENDING` ou `ERROR` no banco não
+libera essas migrations para a reserva: o bloqueio por `wp_media_id_virtual`
+continua ativo. Remover a associação virtual ou forçar nova reserva faria o
+PAI tratar mídias virtuais como originais, com risco de novo upload e registros
+duplicados. A retomada normal requer encaminhar as migrations existentes ao
+Sub 02. Um encerramento administrativo sem essa etapa seria uma exceção à
+regra atual de auditoria e precisaria ficar explicitamente marcado como tal.
+
 As saídas anteriores do Sub 02 não estavam disponíveis nesta revisão. Uma
 tentativa de GET público, somente leitura, para as mídias originais 7701, 7709
 e 7717 a partir deste ambiente recebeu `CONNECT tunnel failed, response 403`
