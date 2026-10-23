@@ -107,6 +107,12 @@ automaticamente as migrations 547–549, que já têm mídia virtual.
    ORDER BY post_id, id;
    ```
 
+   Se a execução anterior do Sub 01 não estiver disponível, consultar também
+   `storage_url` e os demais identificadores canônicos das migrations 547–549.
+   Comparar cada registro com leituras atuais do post e da mídia virtual no
+   WordPress, aplicando as mesmas validações de associação e URL do Sub 01.
+   Não preencher `associacao_wp_confirmada` ou `exclusao_liberada` por suposição.
+
 5. Classificar os seis candidatos no banco. A consulta abaixo é somente leitura;
    vincular ao `?` o array JSON de `candidatos` obtido em
    `Monta | Candidatos [5]`:
@@ -167,8 +173,9 @@ correspondente. `404/rest_post_invalid_id` significa original ausente e exige
 passagem pela auditoria final do Sub 02; HTTP 200 significa original presente
 e exige o fluxo controlado de DELETE e confirmação; 429/5xx são inconclusivos
 e exigem espera e novo GET. Erros de autenticação ou de rede não autorizam
-prosseguir. Recuperar também o resultado do Sub 01 que confirmou a associação
-e liberou a exclusão, pois o Sub 02 exige esses sinais.
+prosseguir. Recuperar o resultado do Sub 01 que confirmou a associação e
+liberou a exclusão ou repetir suas verificações somente leitura com os dados
+canônicos atuais; o Sub 02 exige esses sinais.
 
 Não alterar status diretamente, repetir uploads, executar DELETE ou avançar o
 checkpoint apenas porque `tem_reserva=false`. Ter mídia virtual no banco e no
