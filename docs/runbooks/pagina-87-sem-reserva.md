@@ -41,7 +41,7 @@ Uma leitura de `WP_migracao_featured` fornecida em seguida mostrou:
 | ---: | ---: | ---: | ---: | --- | --- |
 | 548 | 7691 | 7709 | 89998 | `PROCESSING` | `cloudflare_r2` |
 | 547 | 7697 | 7701 | 89997 | `PROCESSING` | `cloudinary` |
-| 549 | 7714 | 7717 | 89999 | `PROCESSING` | `cloudflare_r2` |
+| 549 | 7714 | 7717 | 89999 | `PROCESSING` | `cloudinary` |
 | 550 | 7721 | 7728 | 90000 | `MIGRATED` | `cloudflare_r2` |
 | 551 | 7729 | 7735 | 90001 | `MIGRATED` | `backblaze_b2` |
 | 552 | 7740 | 7746 | 90002 | `MIGRATED` | `cloudflare_r2` |
@@ -202,3 +202,37 @@ checkpoint apenas porque `tem_reserva=false`. Ter mídia virtual no banco e no
 post não libera, por si só, o DELETE: o Sub 02 exige confirmação da associação,
 URL do storage canônico e liberação explícita do Sub 01. Atualizar `docs/STATUS.md`,
 `BACKLOG.md` e `CHANGELOG.md` com os resultados confirmados após a recuperação.
+
+## Exceção administrativa autorizada em 2026-10-23
+
+O operador escolheu encerrar a página sem verificar nem excluir as mídias
+originais. Isso deixa a limpeza das originais 7701, 7709 e 7717 pendente e não
+equivale a uma conclusão auditada pelo Sub 02. A leitura atual recebida do
+banco confirmou checkpoint 87/7684, migrations 547–549 em `PROCESSING`, e
+550–552 em `MIGRATED`; uma nova consulta confirmou que a 549 usa
+`cloudinary`. Esses dados alimentam
+[`pagina87-liberacao-excepcional.sql`](../../database/recovery/pagina87-liberacao-excepcional.sql).
+
+A rotina preparada altera somente 547–549 para `SKIPPED`, com motivo explícito
+em `error_message`, e aborta se o checkpoint, os IDs, os providers, os estados
+ou os horários observados mudarem. Ela não atribui `MIGRATED`, não exclui
+arquivos e não avança o checkpoint. Não foi executada neste ambiente porque
+não existe conexão com o MySQL ativo.
+Se a chamada sinalizar divergência, a transação é revertida; conferir novamente
+o estado antes de ajustar o procedimento. Dependendo de como o cliente SQL
+interrompe a execução, a procedure pontual desta operação pode permanecer
+criada e deve ser removida antes de uma nova tentativa.
+
+Após executar a rotina em um ambiente com acesso ao banco:
+
+1. Conferir que as três linhas retornaram `SKIPPED` com o motivo
+   `EXCECAO_P87_ORIGEM_NAO_VERIFICADA`.
+2. Iniciar o PAI desde o começo, permitindo que ele consulte novamente a
+   página atual do WordPress. Não reutilizar a lista antiga de candidatos para
+   avançar o checkpoint diretamente.
+3. Conferir o resultado de `SP | Fecha Checkpoint`. Se a página ainda tiver os
+   seis candidatos observados, esperar `AVANCADO`, página 88 e ponteiro 7740.
+   Se retornar `AGUARDANDO` ou a página tiver mudado, investigar os candidatos
+   atuais; não forçar `SP_WP_avanca_checkpoint_featured`.
+4. Manter a verificação e eventual limpeza das originais como pendência
+   separada, sem confundir o status `SKIPPED` com exclusão confirmada.

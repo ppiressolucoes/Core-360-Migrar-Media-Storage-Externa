@@ -13,23 +13,26 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - **Evidência:** migrations 498/500/501 concluídas e o checkpoint avançou nas
   execuções posteriores até a página 82, último post 7185.
 
-## P0 — Recuperação em diagnóstico
+## P0 — Liberação excepcional pendente
 
 ### Página 87: reserva sem candidatos elegíveis
 
 - **Estado:** fechamento bloqueado (`AGUARDANDO`) em 2026-10-23. As migrations
   547, 548 e 549 permanecem em `PROCESSING`, já com mídia virtual; 550, 551 e
-  552 estão em `MIGRATED`. A etapa de exclusão/auditoria das três pendentes
-  ainda precisa ser verificada.
+  552 estão em `MIGRATED`. A verificação das originais foi dispensada nesta
+  liberação, com auditoria posterior registrada como pendência.
 - **Evidência recebida:** `Normaliza | Lote Reservado` retornou
   `SEM_CANDIDATOS_ELEGIVEIS`, `total_reservado=0`, `total_candidatos=6`,
   `pagina_processada=87` e `ultimo_post_pagina=7740`.
 - **Fechamento recebido:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
   `total_resolvidos=3`, `pagina_atual=87` e `ultimo_post_id=7684`.
-- **Próximo passo:** conferir a execução do Sub 02 e o estado das mídias
-  originais 7701, 7709 e 7717. Retomar apenas as migrations 547–549 após
-  validar o contrato de exclusão. Repetir o fechamento quando todas as seis
-  estiverem resolvidas e conferir o checkpoint atual antes de agir.
+- **Próximo passo:** executar a liberação excepcional no banco ativo somente
+  se as travas de estado ainda corresponderem à leitura recebida; depois
+  iniciar o PAI desde o começo e confirmar o resultado do fechamento.
+- **Decisão posterior:** o operador autorizou encerrar sem verificar nem
+  excluir as originais. A liberação excepcional está preparada em
+  `database/recovery/pagina87-liberacao-excepcional.sql`, ainda não executada.
+  Após aplicá-la, reexecutar o PAI e confirmar o fechamento.
 - **Procedimento:** [diagnóstico e recuperação da página 87](docs/runbooks/pagina-87-sem-reserva.md).
 
 ## P1 — Confiabilidade
@@ -77,6 +80,8 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - Remover o objeto R2 não canônico produzido para a migration 498 somente após
   a conclusão e auditoria do lote.
 - Exigir comparação por SHA-256, provider, key e asset antes da exclusão.
+- Verificar posteriormente as originais 7701, 7709 e 7717 da página 87 e
+  decidir sua limpeza; o encerramento administrativo não comprova exclusão.
 
 ### Sincronização dos workflows n8n
 

@@ -14,6 +14,9 @@ na resposta recebida, o checkpoint permaneceu na página 87 e o ponteiro em
 e auditoria das mídias originais das três pendentes ainda não foi confirmada.
 O operador não consegue executar agora os GETs de verificação dos originais
 7701, 7709 e 7717 pelo n8n; a recuperação permanece pendente.
+Foi autorizada uma exceção administrativa para encerrar sem verificar a origem.
+O script de liberação foi preparado, mas não aplicado ao banco; o checkpoint
+e os status informados acima continuam sendo a última evidência recebida.
 Consultar [diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md) antes
 de retomar. O checkpoint da página 82 abaixo é o último estado **confirmado
 neste documento**, não uma leitura atual.
