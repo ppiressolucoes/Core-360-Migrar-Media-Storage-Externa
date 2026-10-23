@@ -17,17 +17,19 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 
 ### Página 87: reserva sem candidatos elegíveis
 
-- **Estado:** fechamento bloqueado (`AGUARDANDO`) em 2026-10-23; três dos seis
-  candidatos permanecem sem resolução confirmada. Identidades e etapas desses
-  três itens ainda não foram informadas.
+- **Estado:** fechamento bloqueado (`AGUARDANDO`) em 2026-10-23. As migrations
+  547, 548 e 549 permanecem em `PROCESSING`, já com mídia virtual; 550, 551 e
+  552 estão em `MIGRATED`. A etapa de exclusão/auditoria das três pendentes
+  ainda precisa ser verificada.
 - **Evidência recebida:** `Normaliza | Lote Reservado` retornou
   `SEM_CANDIDATOS_ELEGIVEIS`, `total_reservado=0`, `total_candidatos=6`,
   `pagina_processada=87` e `ultimo_post_pagina=7740`.
 - **Fechamento recebido:** `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
   `total_resolvidos=3`, `pagina_atual=87` e `ultimo_post_id=7684`.
-- **Próximo passo:** classificar os seis pares de post/mídia, conferir o
-  checkpoint atual e o resultado de `SP | Fecha Checkpoint`. Retomar somente os
-  itens pendentes ou fechar a página se todos estiverem resolvidos.
+- **Próximo passo:** conferir a execução do Sub 02 e o estado das mídias
+  originais 7701, 7709 e 7717. Retomar apenas as migrations 547–549 após
+  validar o contrato de exclusão. Repetir o fechamento quando todas as seis
+  estiverem resolvidas e conferir o checkpoint atual antes de agir.
 - **Procedimento:** [diagnóstico e recuperação da página 87](docs/runbooks/pagina-87-sem-reserva.md).
 
 ## P1 — Confiabilidade

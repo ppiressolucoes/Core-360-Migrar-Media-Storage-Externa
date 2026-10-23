@@ -31,11 +31,34 @@ Relato recebido em 2026-10-23. A execução agendada do PAI não terminou. O nó
 `total_resolvidos=3`, `pagina_atual=87` e `ultimo_post_id=7684`. Isso confirma
 que o fechamento não avançou naquela chamada. O objeto de metadados do
 conector MySQL informou `affectedRows=9`; esse número não representa nove
-candidatos resolvidos e não substitui o result set da procedure. Ainda não há
-o status de cada migration; o estado mais recente do banco também não foi
-relido. O limite de três reservas por execução não explica, sozinho, por que
-nenhum dos três candidatos ainda não resolvidos foi reservado. Não considerar
-a página concluída ou recuperada com base apenas nessas saídas.
+candidatos resolvidos e não substitui o result set da procedure. O limite de
+três reservas por execução não explica, sozinho, por que nenhum dos três
+candidatos ainda não resolvidos foi reservado.
+
+Uma leitura de `WP_migracao_featured` fornecida em seguida mostrou:
+
+| Migration | Post | Mídia original | Mídia virtual atual | Status | Provider |
+| ---: | ---: | ---: | ---: | --- | --- |
+| 548 | 7691 | 7709 | 89998 | `PROCESSING` | `cloudflare_r2` |
+| 547 | 7697 | 7701 | 89997 | `PROCESSING` | `cloudinary` |
+| 549 | 7714 | 7717 | 89999 | `PROCESSING` | `cloudflare_r2` |
+| 550 | 7721 | 7728 | 90000 | `MIGRATED` | `cloudflare_r2` |
+| 551 | 7729 | 7735 | 90001 | `MIGRATED` | `backblaze_b2` |
+| 552 | 7740 | 7746 | 90002 | `MIGRATED` | `cloudflare_r2` |
+
+Os seis `wp_media_id` recebidos do WordPress são IDs de mídia **virtual**.
+A SP de reserva os exclui por já constarem em `wp_media_id_virtual`, mesmo
+quando a migration ainda está em `PROCESSING`. A SP de fechamento só considera
+as migrations 550–552 resolvidas. As migrations 547–549 precisam de retomada
+ou auditoria; mídia virtual registrada não prova exclusão da mídia original.
+Não considerar a página concluída ou recuperada com base apenas nessas saídas.
+
+As saídas anteriores do Sub 02 não estavam disponíveis nesta revisão. Uma
+tentativa de GET público, somente leitura, para as mídias originais 7701, 7709
+e 7717 a partir deste ambiente recebeu `CONNECT tunnel failed, response 403`
+do proxy de rede. Esse erro ocorreu antes de uma resposta do WordPress; não
+informa se as mídias existem. Nenhum DELETE ou comando de alteração no banco
+foi executado nesta investigação.
 
 ## O que o export permite afirmar
 
@@ -52,7 +75,10 @@ novos pares e pares em `PENDING` ou `ERROR`, mas exclui `PROCESSING`,
 
 O export do PAI possui divergências conhecidas frente ao n8n ativo. Confirmar
 o caminho efetivamente executado no histórico do n8n antes de editar ou
-reimportar o fluxo.
+reimportar o fluxo. A procedure
+`SP_WP_recupera_migracao_featured_processing` existente no repositório só
+retorna `PROCESSING` com `wp_media_id_virtual IS NULL`; ela não recupera
+automaticamente as migrations 547–549, que já têm mídia virtual.
 
 ## Coleta segura antes de retomar
 
@@ -129,11 +155,23 @@ reimportar o fluxo.
 | --- | --- |
 | Checkpoint já passou da página 87 | Não repetir a reserva ou o fechamento; documentar o avanço já ocorrido e conferir o próximo lote. |
 | Checkpoint na página 87, mesmos seis candidatos, todos `resolvido_checkpoint=1` | Usar o caminho existente `Prepara | Fecha Checkpoint` → `SP | Fecha Checkpoint` com o snapshot verificado. Confirmar retorno `AVANCADO`, página 88 e ponteiro 7740. Não usar `SP_WP_avanca_checkpoint_featured`, que não confere a resolução dos candidatos. |
-| Um ou mais candidatos em `PROCESSING` sem resolução | Identificar a etapa real de cada migration, reconciliar storage com o banco e retomar apenas os itens pendentes pelo subfluxo apropriado. Exigir auditoria final da exclusão antes de marcar `MIGRATED`, conforme `fechamento-e-retomada-de-lote.md`. Depois repetir o fechamento. |
+| Migrations 547–549 ainda em `PROCESSING`, com mídia virtual | Obter a execução anterior do Sub 01/Sub 02. Confirmar associação no WordPress, storage canônico e os sinais `associacao_wp_confirmada` e `exclusao_liberada` exigidos pelo Sub 02. Verificar por GET o estado das mídias originais 7701, 7709 e 7717. Retomar somente essas três migrations pelo Sub 02 com o contrato validado e a auditoria final exigida em `fechamento-e-retomada-de-lote.md`. Depois repetir o fechamento. |
 | Algum `elegivel_reserva=1`, mas a SP retornou zero | Conferir `limite_execucao`, resposta bruta da SP, versão ativa da procedure e transformação do conector MySQL. Não avançar o checkpoint; a elegibilidade e a resposta precisam ser reconciliadas. |
 | Os seis candidatos da página mudaram ou o checkpoint está antes de 87 | Parar a recuperação pontual e investigar a paginação/ponteiro. Não fechar com um snapshot desatualizado. |
 | Fechamento retornou `AGUARDANDO` | Registrar quais candidatos permanecem não resolvidos. A execução do PAI pode terminar nesse ponto sem resolver a causa. |
 
+Para obter a evidência faltante, usar no n8n ativo o mesmo GET somente leitura
+de `GET | Verifica Mídia Original`, com a credencial já configurada, para os
+IDs 7701, 7709 e 7717. Registrar HTTP status, código de origem e a migration
+correspondente. `404/rest_post_invalid_id` significa original ausente e exige
+passagem pela auditoria final do Sub 02; HTTP 200 significa original presente
+e exige o fluxo controlado de DELETE e confirmação; 429/5xx são inconclusivos
+e exigem espera e novo GET. Erros de autenticação ou de rede não autorizam
+prosseguir. Recuperar também o resultado do Sub 01 que confirmou a associação
+e liberou a exclusão, pois o Sub 02 exige esses sinais.
+
 Não alterar status diretamente, repetir uploads, executar DELETE ou avançar o
-checkpoint apenas porque `tem_reserva=false`. Atualizar `docs/STATUS.md`,
+checkpoint apenas porque `tem_reserva=false`. Ter mídia virtual no banco e no
+post não libera, por si só, o DELETE: o Sub 02 exige confirmação da associação,
+URL do storage canônico e liberação explícita do Sub 01. Atualizar `docs/STATUS.md`,
 `BACKLOG.md` e `CHANGELOG.md` com os resultados confirmados após a recuperação.

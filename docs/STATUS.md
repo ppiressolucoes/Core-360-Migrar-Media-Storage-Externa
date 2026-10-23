@@ -9,8 +9,9 @@ Em 2026-10-23 foi relatada uma execução agendada incompleta do PAI na página
 87: seis candidatos, nenhuma reserva elegível e último post da página 7740.
 O fechamento retornou `AGUARDANDO`: três dos seis candidatos estão resolvidos;
 na resposta recebida, o checkpoint permaneceu na página 87 e o ponteiro em
-7684. Os três itens pendentes e o estado mais recente do banco ainda precisam
-ser identificados.
+7684. A leitura do banco fornecida depois identificou 547, 548 e 549 em
+`PROCESSING` com mídia virtual; 550, 551 e 552 estão em `MIGRATED`. A exclusão
+e auditoria das mídias originais das três pendentes ainda não foi confirmada.
 Consultar [diagnóstico da página 87](runbooks/pagina-87-sem-reserva.md) antes
 de retomar. O checkpoint da página 82 abaixo é o último estado **confirmado
 neste documento**, não uma leitura atual.
