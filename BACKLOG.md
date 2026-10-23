@@ -2,6 +2,9 @@
 
 Atualizado em 2026-10-21.
 
+Sequência proposta para a próxima evolução e evidências da revisão de
+2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
+
 ## P0 — Operação concluída
 
 ### Confirmar exclusão da migration 498 e fechar a página 79

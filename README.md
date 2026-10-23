@@ -25,7 +25,16 @@ imagens destacadas do portal **Energia Limpa** para provedores externos.
 | `database/legacy/` | Procedures substituídas pelo contrato genérico de storage. |
 | `docs/runbooks/` | Procedimentos de operação e recuperação. |
 | `BACKLOG.md` | Pendências priorizadas e critérios de aceite. |
+| `docs/planejamento/` | Planos de execução, alinhamentos e evidências de acompanhamento. |
 | `CHANGELOG.md` | Registro das correções e decisões aplicadas. |
+
+## Registro da evolução
+
+Avanços, alinhamentos, ações e aprendizados deste Core devem ser registrados no
+repositório e publicados no remoto. O backlog contém as pendências; planos e
+evidências datados ficam em `docs/planejamento/`; alterações efetivas entram no
+`CHANGELOG.md`. O plano atual está em
+[2026-10-23-evolucao-core.md](docs/planejamento/2026-10-23-evolucao-core.md).
 
 ## Regras de segurança operacional
 
