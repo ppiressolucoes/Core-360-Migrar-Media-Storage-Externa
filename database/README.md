@@ -37,6 +37,12 @@ do PAI, `SP | Fecha Checkpoint` retornou `AVANCADO`, página 88, último post
 7740 e seis de seis candidatos resolvidos. A captura não confirma se o
 `DROP PROCEDURE` foi executado.
 
+`recovery/pagina98-cria-sp.sql` preserva a definição da procedure pontual
+utilizada no desbloqueio da página 98. O operador executou sua criação, o
+`CALL` e o `DROP PROCEDURE` separadamente em 2026-10-27. O `CALL` marcou 613–615
+como `SKIPPED`; o fechamento posterior do PAI avançou para a página 99. Este
+arquivo é histórico da exceção e não faz parte das procedures canônicas.
+
 ## Implantação
 
 Revise o `DEFINER` conforme o ambiente antes de aplicar. A implantação deve ser

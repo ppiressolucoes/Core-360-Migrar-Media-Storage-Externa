@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-27
+
+### Desbloqueio operacional da página 98
+
+- 613–615 estavam em `PROCESSING` com mídia virtual; 616–618 estavam em
+  `MIGRATED`; o fechamento inicial retornou `AGUARDANDO` (3/6), página 98;
+- o operador autorizou uma exceção administrativa para priorizar o avanço
+  global, deixando a verificação das originais 8829, 8840 e 8858 como residual;
+- o `CALL` da procedure pontual retornou 613–615 em `SKIPPED`, com motivo
+  `EXCECAO_P98_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;` e
+  `updated_at=2026-10-27 14:36:10`; o operador removeu a procedure;
+- o PAI retornou `AVANCADO`, 6/6 candidatos resolvidos, página 99, último
+  post 8889 e `updated_at=2026-10-27 14:43:24`;
+- a recorrência motivou a proposta de um fluxo dedicado de diagnóstico e
+  recuperação, com retomada auditada e exceção administrativa explícita.
+
 ## 2026-10-23
 
 ### Processamento da página 88

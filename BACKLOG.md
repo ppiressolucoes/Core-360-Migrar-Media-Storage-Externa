@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-10-23.
+Atualizado em 2026-10-27.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -51,7 +51,37 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   `updated_at=2026-10-23 15:41:01`. Não foi enviada a saída da segunda
   reserva nem leitura SQL separada do checkpoint.
 
+## P0 — Desbloqueio da página 98 concluído
+
+- **Estado:** a exceção administrativa autorizada pelo operador marcou apenas
+  as migrations 613–615 como `SKIPPED` em 2026-10-27 14:36:10, com motivo
+  `EXCECAO_P98_ORIGEM_NAO_VERIFICADA; auditoria posterior pendente;`. As
+  migrations 616–618 estavam em `MIGRATED` na leitura anterior.
+- **Causa observada:** os seis candidatos tinham mídias virtuais 90399–90404;
+  três migrations continuavam em `PROCESSING` com mídia virtual registrada, o
+  que as excluía da reserva e mantinha `SP | Fecha Checkpoint` em `AGUARDANDO`
+  (3/6), página 98, último post 8782.
+- **Fechamento:** após o `CALL`, o operador removeu a procedure temporária e
+  executou o PAI. `SP | Fecha Checkpoint` retornou `AVANCADO`, 6/6 resolvidos,
+  página 99, último post 8889, `updated_at=2026-10-27 14:43:24`.
+- **Residual:** as mídias originais 8829, 8840 e 8858 não foram verificadas ou
+  excluídas. Ver [recuperação da página 98](docs/runbooks/pagina-98-sem-reserva.md).
+
 ## P1 — Confiabilidade
+
+### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
+
+- Criar um fluxo acionado manualmente para classificar cada candidato da página
+  atual, ler o checkpoint e o estado canônico das migrations, e indicar a causa
+  de `AGUARDANDO` sem reserva.
+- Retomar pelo Sub 02 os itens com mídia virtual quando os sinais de associação
+  e auditoria puderem ser confirmados. Exigir uma decisão explícita e registrada
+  para qualquer encerramento administrativo `SKIPPED`; nunca automatizar essa
+  exceção a partir de `AGUARDANDO`.
+- Usar o fechamento existente da página após a recuperação, com nova leitura
+  dos candidatos e sem `UPDATE` direto do checkpoint. Registrar as originais
+  não verificadas em uma fila consultável para auditoria posterior.
+- Critérios e sequência: [proposta de fluxo de recuperação](docs/planejamento/2026-10-27-recuperacao-lotes.md).
 
 ### Não encerrar silenciosamente sem reserva e com fechamento pendente
 
@@ -98,6 +128,8 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - Exigir comparação por SHA-256, provider, key e asset antes da exclusão.
 - Verificar posteriormente as originais 7701, 7709 e 7717 da página 87 e
   decidir sua limpeza; o encerramento administrativo não comprova exclusão.
+- Verificar as originais 8829, 8840 e 8858 da página 98 e decidir sua limpeza;
+  o status `SKIPPED` não comprova exclusão.
 - Confirmar se a procedure pontual
   `SP_WP_excecao_p87_origem_nao_verificada` foi removida; a captura do `CALL`
   não comprovou a execução do `DROP PROCEDURE`.

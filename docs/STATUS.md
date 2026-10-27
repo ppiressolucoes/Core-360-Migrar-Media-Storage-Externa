@@ -1,7 +1,25 @@
 # Estado operacional
 
-Última evidência operacional recebida: 2026-10-23. A resposta de
-`SP | Fecha Checkpoint` confirmou o avanço para a página 89, último post 7877.
+Última evidência operacional recebida: 2026-10-27. A resposta de
+`SP | Fecha Checkpoint` confirmou o avanço para a página 99, último post 8889.
+
+## Página 98: desbloqueio concluído por exceção administrativa
+
+O PAI recebeu seis pares de posts e mídias virtuais: 8827/90399, 8834/90400,
+8846/90401, 8860/90402, 8874/90403 e 8889/90404; `per_page=6`,
+`limite_execucao=3`, último post da página 8889. O fechamento inicial retornou
+`AGUARDANDO`, 3/6 resolvidos, página 98 e último post do checkpoint 8782. A
+leitura do banco confirmou 613–615 em `PROCESSING` com mídia virtual e storage
+registrados; 616–618 estavam em `MIGRATED`.
+
+O operador autorizou deixar como residual a verificação das mídias originais
+8829, 8840 e 8858. O `CALL SP_WP_excecao_p98_origem_nao_verificada()` retornou
+613–615 em `SKIPPED`, com `EXCECAO_P98_ORIGEM_NAO_VERIFICADA; auditoria posterior
+pendente;` e `updated_at=2026-10-27 14:36:10`. O operador confirmou a remoção
+da procedure temporária. Depois, o PAI retornou `AVANCADO`, 6/6 resolvidos,
+página 99, último post 8889, `updated_at=2026-10-27 14:43:24`. Não foi enviada
+leitura SQL separada do checkpoint. A exceção não confirma presença ou exclusão
+das três originais. Consultar [runbook da página 98](runbooks/pagina-98-sem-reserva.md).
 
 ## Página 88: processamento concluído
 
