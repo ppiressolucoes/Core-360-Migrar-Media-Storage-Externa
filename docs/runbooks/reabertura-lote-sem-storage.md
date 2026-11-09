@@ -101,5 +101,22 @@ A procedure foi criada e chamada em MySQL 8.4 e MariaDB 10.11 isolados, com
 uma tabela de teste contendo as colunas observadas no banco ativo. Os testes
 cobriram `REABERTO` para três alvos, `JA_REABERTO` na segunda chamada,
 re-reserva dos mesmos IDs pela SP de reserva, recusa de snapshot antigo e
-recusa de um lote com storage parcial. Nenhum teste conectou ao banco ativo;
-comparar o esquema e a definição das SPs implantadas antes do uso.
+recusa de um lote com storage parcial. Nenhum teste automatizado conectou ao
+banco ativo.
+
+## Aplicação observada na página 132
+
+Em 2026-11-09, o operador criou a procedure no banco ativo e enviou o
+resultado da chamada: 798, 799 e 800 retornaram `REABERTO`, em `ERROR`, às
+13:31:38. O PAI seguinte reservou os três IDs em `PROCESSING` às 13:32:54.
+Isso confirma a reabertura; não confirma o fechamento da página.
+
+Na mesma execução, `Download | Featured IMG` retornou três binários. O
+terceiro apareceu como `data.html`, MIME `text/html`, com 184 kB, e o upload
+externo terminou em HTTP 400 (`ERR_BAD_REQUEST`). A captura não traz HTTP
+status ou headers do download. Para investigar, executar isoladamente o GET
+do terceiro item com resposta completa e anotar URL efetiva, status,
+`Content-Type`, eventual `Location` e título/início não sensível do HTML.
+Não passar o HTML para o subfluxo de storage. Antes de repetir o PAI, verificar
+os dois primeiros uploads e o estado canônico das três migrations para evitar
+uploads duplicados ou objetos sem registro.

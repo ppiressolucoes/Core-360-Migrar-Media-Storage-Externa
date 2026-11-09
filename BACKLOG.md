@@ -74,11 +74,33 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - **Implementado no repositório:** `SP_WP_reabre_migracao_featured_lote`
   reabre apenas `PROCESSING` sem storage/mídia virtual, com snapshot do
   checkpoint e dos alvos; a chamada repetida antes da reserva é idempotente.
-- **Pendente:** comparar com a versão ativa da SP de reserva, implantar no
-  banco ativo e validar um reprocessamento controlado. A página 132 continua
-  `AGUARDANDO` (0/3) na última evidência recebida; não há confirmação de
-  avanço nem de instalação da nova procedure.
+- **Confirmado no banco ativo pelo operador em 2026-11-09:** a procedure foi
+  criada. O `CALL` retornou `REABERTO` para 798–800 em `ERROR` às 13:31:38.
+  O PAI reservou novamente os mesmos IDs em `PROCESSING` às 13:32:54,
+  confirmando a reabertura e a compatibilidade com a SP de reserva ativa.
+- **Pendente:** concluir o processamento da página 132. Não foi recebida
+  confirmação de avanço do checkpoint após a nova reserva.
 - **Procedimento:** [reabertura controlada](docs/runbooks/reabertura-lote-sem-storage.md).
+
+### Página 132: download retornou HTML no terceiro item
+
+- **Estado:** PAI interrompido no terceiro laço de upload após reservar as
+  migrations 798–800. `Chamar Repositório Externo` retornou
+  `ERR_BAD_REQUEST; http=400; tentativa=1/3`.
+- **Evidência:** `Download | Featured IMG` executou para três itens; a captura
+  mostra que o binário do terceiro é `data.html`, MIME `text/html`, 184 kB, em
+  vez da imagem esperada. O GET produziu um binário, mas o conteúdo recebido
+  não é uma imagem. O HTTP status e os headers desse GET não foram fornecidos;
+  a causa da resposta HTML ainda precisa ser identificada.
+- **Próximo passo:** obter para o terceiro item `migration_id`, `original_url`,
+  URL resolvida do proxy, HTTP status, `Content-Type`, eventual `Location` e
+  título ou início não sensível do HTML. Executar apenas o GET para diagnóstico,
+  sem reabrir o lote nem chamar o upload. Conferir o resultado dos dois
+  primeiros uploads antes de qualquer nova execução do PAI, pois podem existir
+  objetos externos sem registro canônico no banco.
+- **Prevenção:** rejeitar `text/html` e outros formatos inesperados logo após
+  o download, antes do loop de upload, registrando o item e os metadados da
+  resposta. Revisar a URL do proxy ou a resposta da origem após o diagnóstico.
 
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 
