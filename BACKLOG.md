@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-10-27.
+Atualizado em 2026-11-09.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -68,6 +68,17 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   excluídas. Ver [recuperação da página 98](docs/runbooks/pagina-98-sem-reserva.md).
 
 ## P1 — Confiabilidade
+
+### Reabertura genérica de lote sem storage
+
+- **Implementado no repositório:** `SP_WP_reabre_migracao_featured_lote`
+  reabre apenas `PROCESSING` sem storage/mídia virtual, com snapshot do
+  checkpoint e dos alvos; a chamada repetida antes da reserva é idempotente.
+- **Pendente:** comparar com a versão ativa da SP de reserva, implantar no
+  banco ativo e validar um reprocessamento controlado. A página 132 continua
+  `AGUARDANDO` (0/3) na última evidência recebida; não há confirmação de
+  avanço nem de instalação da nova procedure.
+- **Procedimento:** [reabertura controlada](docs/runbooks/reabertura-lote-sem-storage.md).
 
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 

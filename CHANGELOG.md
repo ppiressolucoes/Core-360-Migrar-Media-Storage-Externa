@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-09
+
+### Reabertura genérica de lote
+
+- adicionada `SP_WP_reabre_migracao_featured_lote` para reabrir migrations em
+  `PROCESSING` sem storage nem mídia virtual, com validação do checkpoint,
+  candidatos, alvos e timestamps; o checkpoint não é alterado;
+- documentado o procedimento de implantação, chamada e reexecução do PAI;
+- registrada a divergência entre a tabela ativa e as colunas esperadas pela
+  procedure de storage versionada. A SP de reabertura ainda não foi implantada
+  no banco ativo, e a página 132 segue pendente.
+- validação em MySQL 8.4 e MariaDB 10.11 isolados: reabertura de três itens,
+  segunda chamada `JA_REABERTO`, nova reserva pela SP existente e rejeição de
+  snapshot alterado ou storage já registrado, sem atualização do checkpoint.
+
 ## 2026-10-27
 
 ### Desbloqueio operacional da página 98

@@ -1,6 +1,21 @@
 # Estado operacional
 
-Última evidência operacional recebida: 2026-10-27. A resposta de
+## Página 132: reabertura preparada, execução pendente
+
+O PAI recebeu três candidatos (11358/11382, 11365/11373 e 11380/11400),
+último post da página 11402. `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
+0/3 resolvidos, página 132 e ponteiro 11331. As migrations 798–800 estão em
+`PROCESSING`, sem `storage_provider`, `storage_url` ou mídia virtual na última
+leitura recebida. A tentativa de upload apresentou HTTP 415 no subfluxo de
+storage; o histórico completo da falha não está mais disponível.
+
+A procedure genérica de reabertura foi preparada no repositório para um novo
+retry controlado, mas ainda não há evidência de implantação no banco ativo ou
+de avanço da página. A tabela ativa não tem algumas colunas da procedure de
+registro de storage versionada, exigindo comparação antes da implantação.
+Consultar o [runbook de reabertura](runbooks/reabertura-lote-sem-storage.md).
+
+Último checkpoint avançado confirmado: 2026-10-27. A resposta de
 `SP | Fecha Checkpoint` confirmou o avanço para a página 99, último post 8889.
 
 ## Página 98: desbloqueio concluído por exceção administrativa

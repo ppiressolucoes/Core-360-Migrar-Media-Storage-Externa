@@ -10,11 +10,22 @@ Cloudinary, Cloudflare R2 e Backblaze B2.
 idempotente com o mesmo contrato é aceita; qualquer troca de provider, key, URL,
 asset ou SHA-256 gera `Storage conflitante na migration`.
 
+`SP_WP_reabre_migracao_featured_lote` reabre com guardas um lote interrompido
+antes do storage e da mídia virtual. Ela muda somente os alvos de `PROCESSING`
+para `ERROR`, para que o PAI os reserve novamente; não avança o checkpoint.
+Consultar o [runbook de reabertura](../docs/runbooks/reabertura-lote-sem-storage.md)
+antes de criar a procedure no banco ativo.
+
 As versões genéricas de `SP_WP_registra_storage_lote`,
 `SP_WP_registra_associacao_lote` e `SP_WP_conclui_migracao_featured_lote`
 refletem o contrato validado pela sprint. Antes de uma nova implantação, compare
 estes arquivos com `SHOW CREATE PROCEDURE` do ambiente ativo. O repositório não
 executa nem substitui procedures automaticamente.
+
+A leitura da tabela ativa recebida em 2026-11-09 não contém
+`storage_mime_type`, `storage_width` e `storage_height`, embora a procedure de
+registro de storage versionada aqui os use. Não implantar essa procedure sem
+reconciliar o esquema e a versão ativa.
 
 ## Procedures legadas
 

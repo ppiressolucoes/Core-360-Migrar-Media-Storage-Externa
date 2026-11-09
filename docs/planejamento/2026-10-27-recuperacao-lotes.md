@@ -51,8 +51,19 @@ para transformar `AGUARDANDO` em `SKIPPED` automaticamente.
   evidência do resultado. A fila residual permite localizar todas as originais
   não verificadas das páginas 87 e 98.
 
-Antes de implementar, exportar o PAI publicado e comparar os contratos ativos
-com o repositório. A captura de 2026-10-27 mostra `Monta | Candidatos [3]` e
+Antes de implementar o fluxo n8n, exportar o PAI publicado e comparar os
+contratos ativos com o repositório. A captura de 2026-10-27 mostra
+`Monta | Candidatos [3]` e
 `DB | Recupera Storage Canônico`; o export oficial salvo aqui ainda contém
 `Monta | Candidatos [5]` e não inclui esse nó de preflight. Validar o novo fluxo
 contra a versão ativa, depois publicar e reexportar os artefatos oficiais.
+
+## Avanço em 2026-11-09
+
+A procedure genérica `SP_WP_reabre_migracao_featured_lote` foi preparada no
+repositório para o caso específico de `PROCESSING` sem storage e sem mídia
+virtual. Ela confere checkpoint, candidatos e snapshot dos alvos, reabrindo-os
+como `ERROR` para uma nova reserva do PAI. O fluxo manual completo desta
+proposta continua pendente: a procedure não diagnostica falhas do provedor,
+não retoma itens com storage/mídia virtual e não automatiza exceções `SKIPPED`.
+Consultar [o procedimento de reabertura](../runbooks/reabertura-lote-sem-storage.md).

@@ -21,6 +21,7 @@ PROCEDURES = {
     'SP_WP_conclui_migracao_featured_lote.sql',
     'SP_WP_fecha_checkpoint_featured.sql',
     'SP_WP_recupera_migracao_featured_processing.sql',
+    'SP_WP_reabre_migracao_featured_lote.sql',
     'SP_WP_registra_associacao_lote.sql',
     'SP_WP_registra_erro_associacao.sql',
     'SP_WP_registra_midia_externa.sql',
