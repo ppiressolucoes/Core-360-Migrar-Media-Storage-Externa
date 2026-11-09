@@ -35,19 +35,26 @@ parou no terceiro laço: a mídia 11400 trouxe uma URL externa embutida em
    Esperado: checkpoint página 132 / último post 11331; 798/799 em
    `PROCESSING` com o storage já confirmado e sem mídia virtual; 800 em
    `SKIPPED` sem storage.
-3. Criar um workflow temporário no n8n com `Manual Trigger` → `Code`
-   (`Run Once for All Items`) → `Execute Workflow`. Colar no Code o conteúdo
-   de [`pagina132-start-sub01.js`](../../workflows/recovery/pagina132-start-sub01.js).
-   O Code deve devolver exatamente dois itens, 798 e 799. Configurar
-   `Execute Workflow` para chamar a versão **ativa** de
-   `PEL | Featured Associação WP | Sub 01`, passar todos os itens de entrada
-   e aguardar a conclusão. O `Start WP` ativo mostra `Accept all data`, mas
-   uma captura de 2026-11-09 mostrou **três itens pinned antigos**, com 798,
-   799 e 800 e campos de storage nulos. Remover o pin do `Start WP` antes de
-   chamar o Sub 01 pelo workflow temporário. O pin substitui a entrada real
-   nas execuções de teste; não editar a lógica do Sub 01 para acomodar esses
-   dados antigos. Conferir no `Code` que os dois itens novos contêm SHA-256,
-   provider, key, URL, asset ID, MIME e dimensões antes de executar.
+3. Escolher **um** modo de iniciar a versão ativa do Sub 01:
+
+   - **Execução manual no próprio Sub 01:** em `Start WP`, usar `Edit Output`
+     no pin existente e substituir os três itens antigos pelo array de
+     [`pagina132-start-sub01.json`](../../workflows/recovery/pagina132-start-sub01.json).
+     Conferir na saída do `Start WP` que existem **dois itens**, 798 e 799,
+     com SHA-256, provider, key, URL, asset ID, MIME e dimensões preenchidos.
+     A 800 aparece somente em `candidatos_pagina`, não como terceiro item.
+     Executar o Sub 01 manualmente e **remover o pin após a execução**.
+   - **Workflow temporário chamador:** criar `Manual Trigger` → `Code`
+     (`Run Once for All Items`) → `Execute Workflow`; colar no Code
+     [`pagina132-start-sub01.js`](../../workflows/recovery/pagina132-start-sub01.js).
+     O Code deve devolver exatamente dois itens. Configurar `Execute Workflow`
+     para passar todos os itens ao Sub 01 ativo e aguardar sua conclusão.
+     Nesse modo, **remover antes o pin do `Start WP`** no Sub 01, pois o pin
+     substitui a entrada real nas execuções de teste.
+
+   O `Start WP` ativo mostra `Accept all data`; não editar a lógica do Sub 01.
+   Uma captura de 2026-11-09 mostrou três itens pinned antigos, com 798, 799
+   e 800 e campos de storage nulos. Esses dados não podem ser executados.
 4. Acompanhar registro da mídia virtual, associação com o post, Sub 02 e
    auditoria. O fechamento normal deve contar a 800 como `SKIPPED` e as duas
    restantes como `MIGRATED`, retornando `AVANCADO` para a página 133 e
