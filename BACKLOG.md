@@ -67,6 +67,25 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 - **Residual:** as mídias originais 8829, 8840 e 8858 não foram verificadas ou
   excluídas. Ver [recuperação da página 98](docs/runbooks/pagina-98-sem-reserva.md).
 
+## P0 — Recuperação da página 132 concluída
+
+- **Causa:** a migration 800, mídia 11400, tinha uma URL externa embutida no
+  caminho `/wp-content/uploads/`. O PAI tratou o item como mídia local,
+  recebeu `text/html` no download e o upload falhou com HTTP 400.
+- **Recuperação:** a SP genérica reabriu 798–800; o PAI reservou novamente os
+  três IDs. Os uploads confirmados de 798 e 799 foram registrados pela SP ativa
+  de storage (2/2), sem repetir o envio. A 800 foi marcada `SKIPPED` com
+  `EXCECAO_P132_URL_ORIGEM_INVALIDA` e auditoria posterior pendente. O Sub 01
+  foi executado manualmente apenas para 798/799; o pin temporário do `Start WP`
+  foi removido depois.
+- **Estado final no banco:** 798 `MIGRATED`, mídia virtual 93022, Cloudinary;
+  799 `MIGRATED`, mídia virtual 93024, Cloudflare R2; 800 `SKIPPED`, sem
+  storage e sem mídia virtual. As duas migradas têm
+  `migrated_at=2026-11-09 14:55:25`.
+- **Checkpoint:** `SP | Fecha Checkpoint` retornou `AVANCADO`, 3/3 resolvidos,
+  página 133, último post 11402, `updated_at=2026-11-09 14:55:25`.
+- **Procedimento:** [retomada da página 132](docs/runbooks/pagina-132-retomada-sub01.md).
+
 ## P1 — Confiabilidade
 
 ### Reabertura genérica de lote sem storage
@@ -78,29 +97,23 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   criada. O `CALL` retornou `REABERTO` para 798–800 em `ERROR` às 13:31:38.
   O PAI reservou novamente os mesmos IDs em `PROCESSING` às 13:32:54,
   confirmando a reabertura e a compatibilidade com a SP de reserva ativa.
-- **Pendente:** concluir o processamento da página 132. Não foi recebida
-  confirmação de avanço do checkpoint após a nova reserva.
+- **Resultado operacional:** após recuperação por item, o checkpoint da página
+  132 avançou para 133. A reabertura não resolveu a URL malformada da 800;
+  essa falha segue como correção permanente separada.
 - **Procedimento:** [reabertura controlada](docs/runbooks/reabertura-lote-sem-storage.md).
 
-### Página 132: download retornou HTML no terceiro item
+### Validar URL local e conteúdo do download antes do upload
 
-- **Estado:** PAI interrompido no terceiro laço de upload após reservar as
-  migrations 798–800. `Chamar Repositório Externo` retornou
-  `ERR_BAD_REQUEST; http=400; tentativa=1/3`.
-- **Evidência:** `Download | Featured IMG` executou para três itens; a captura
-  mostra que o binário do terceiro é `data.html`, MIME `text/html`, 184 kB, em
-  vez da imagem esperada. O GET produziu um binário, mas o conteúdo recebido
-  não é uma imagem. O HTTP status e os headers desse GET não foram fornecidos;
-  a causa da resposta HTML ainda precisa ser identificada.
-- **Próximo passo:** obter para o terceiro item `migration_id`, `original_url`,
-  URL resolvida do proxy, HTTP status, `Content-Type`, eventual `Location` e
-  título ou início não sensível do HTML. Executar apenas o GET para diagnóstico,
-  sem reabrir o lote nem chamar o upload. Conferir o resultado dos dois
-  primeiros uploads antes de qualquer nova execução do PAI, pois podem existir
-  objetos externos sem registro canônico no banco.
-- **Prevenção:** rejeitar `text/html` e outros formatos inesperados logo após
-  o download, antes do loop de upload, registrando o item e os metadados da
-  resposta. Revisar a URL do proxy ou a resposta da origem após o diagnóstico.
+- **Evidência:** a mídia 11400 informou
+  `https://energialimpa.live/wp-content/uploads/https://agenciabrasil.ebc.com.br/ebc.png?id=1607604&o=node`,
+  com metadados de imagem 1×1. O `IF Mídia Local?` aceitou o prefixo local; o
+  terceiro download retornou `data.html`, MIME `text/html`, 184 kB, e o upload
+  recebeu HTTP 400. O status HTTP do GET não foi capturado.
+- **Pendente:** validar o caminho local completo, rejeitando URL embutida, e
+  bloquear `text/html` ou binário não correspondente a imagem antes do
+  subfluxo de storage. Registrar status HTTP e `Content-Type` do GET para
+  diagnóstico e encaminhar itens inválidos para fila residual sem parar os
+  demais uploads da página.
 
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 
@@ -163,6 +176,9 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   decidir sua limpeza; o encerramento administrativo não comprova exclusão.
 - Verificar as originais 8829, 8840 e 8858 da página 98 e decidir sua limpeza;
   o status `SKIPPED` não comprova exclusão.
+- Auditar a mídia original 11400 da migration 800 e corrigir a URL de origem
+  malformada antes de qualquer reprocessamento; `SKIPPED` não significa que a
+  mídia tenha sido migrada ou excluída.
 - Confirmar se a procedure pontual
   `SP_WP_excecao_p87_origem_nao_verificada` foi removida; a captura do `CALL`
   não comprovou a execução do `DROP PROCEDURE`.

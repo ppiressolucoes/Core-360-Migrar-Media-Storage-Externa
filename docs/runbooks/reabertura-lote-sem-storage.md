@@ -120,3 +120,11 @@ do terceiro item com resposta completa e anotar URL efetiva, status,
 Não passar o HTML para o subfluxo de storage. Antes de repetir o PAI, verificar
 os dois primeiros uploads e o estado canônico das três migrations para evitar
 uploads duplicados ou objetos sem registro.
+
+O operador registrou os dois uploads confirmados via SP ativa de storage,
+marcou apenas a 800 como `SKIPPED` por URL inválida e retomou 798/799 pelo
+Sub 01. A leitura final confirmou as duas em `MIGRATED` e a 800 em `SKIPPED`.
+`SP | Fecha Checkpoint` retornou `AVANCADO`, 3/3, página 133, último post
+11402, em 2026-11-09 14:55:25. Ver
+[retomada da página 132](pagina-132-retomada-sub01.md) para o resultado por
+item e a pendência de auditoria.

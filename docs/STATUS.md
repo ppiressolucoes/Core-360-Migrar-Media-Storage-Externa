@@ -1,22 +1,27 @@
 # Estado operacional
 
-## Página 132: reabertura preparada, execução pendente
+## Página 132: recuperação concluída
 
 O PAI recebeu três candidatos (11358/11382, 11365/11373 e 11380/11400),
-último post da página 11402. `SP | Fecha Checkpoint` retornou `AGUARDANDO`,
-0/3 resolvidos, página 132 e ponteiro 11331. As migrations 798–800 estão em
-`PROCESSING`, sem `storage_provider`, `storage_url` ou mídia virtual na última
-leitura recebida. A tentativa de upload apresentou HTTP 415 no subfluxo de
-storage; o histórico completo da falha não está mais disponível.
+último post da página 11402. A procedure genérica de reabertura foi criada
+no banco ativo e reabriu as migrations 798–800. Em nova execução, o terceiro
+download retornou `text/html`; a URL da mídia 11400 contém outra URL dentro
+do caminho `/wp-content/uploads/`. O upload falhou com HTTP 400.
 
-A procedure genérica de reabertura foi preparada no repositório para um novo
-retry controlado, mas ainda não há evidência de implantação no banco ativo ou
-de avanço da página. A tabela ativa não tem algumas colunas da procedure de
-registro de storage versionada, exigindo comparação antes da implantação.
-Consultar o [runbook de reabertura](runbooks/reabertura-lote-sem-storage.md).
+Os uploads bem-sucedidos de 798 e 799 foram persistidos pela SP ativa de
+storage, que retornou 2/2 `STORAGE_REGISTRADO`. A migration 800 foi marcada
+`SKIPPED` como residual de URL inválida; o Sub 01 foi executado manualmente
+para 798 e 799. A leitura final confirmou 798 `MIGRATED` (mídia virtual
+93022, Cloudinary), 799 `MIGRATED` (mídia virtual 93024, Cloudflare R2) e 800
+`SKIPPED` (sem storage ou mídia virtual). O pin temporário no `Start WP` foi
+removido.
 
-Último checkpoint avançado confirmado: 2026-10-27. A resposta de
-`SP | Fecha Checkpoint` confirmou o avanço para a página 99, último post 8889.
+`SP | Fecha Checkpoint` retornou `AVANCADO`, 3/3 resolvidos, página 133,
+último post 11402, `updated_at=2026-11-09 14:55:25`. Essa é a evidência mais
+recente de avanço; não foi enviada leitura SQL separada do checkpoint. A
+correção permanente da validação da URL e do conteúdo baixado e a auditoria
+da mídia 11400 permanecem no backlog. Consultar
+[retomada da página 132](runbooks/pagina-132-retomada-sub01.md).
 
 ## Página 98: desbloqueio concluído por exceção administrativa
 

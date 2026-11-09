@@ -73,3 +73,19 @@ malformado da mídia 11400 como upload local. Validar o caminho depois de
 `/wp-content/uploads/` e rejeitar URL embutida; após o GET, bloquear
 `text/html` ou outro formato inesperado antes de chamar o storage. Registrar
 status HTTP e `Content-Type` no diagnóstico da mídia rejeitada.
+
+## Resultado observado
+
+O operador confirmou a 800 em `SKIPPED` às 14:08:18, com marcador
+`EXCECAO_P132_URL_ORIGEM_INVALIDA` e sem storage. O Sub 01 manual terminou,
+e o pin temporário do `Start WP` foi removido. A leitura final do banco mostrou:
+
+| Migration | Resultado | Mídia virtual | Storage |
+| --- | --- | --- | --- |
+| 798 | `MIGRATED` às 14:55:25 | 93022 | Cloudinary |
+| 799 | `MIGRATED` às 14:55:25 | 93024 | Cloudflare R2 |
+| 800 | `SKIPPED` às 14:08:18 | Nenhuma | Nenhum |
+
+`SP | Fecha Checkpoint` retornou `AVANCADO`, 3/3 resolvidos, página 133,
+último post 11402 e `updated_at=2026-11-09 14:55:25`. O fechamento da página
+está confirmado pela saída da SP; a auditoria da mídia 11400 continua pendente.
