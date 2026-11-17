@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-17
+
+### Página 166 e tratamento de origem ausente
+
+- registradas a conclusão das migrations 965 e 966 e a exceção autorizada
+  para 964; o fechamento retornou `AVANCADO`, 4/4, página 167;
+- registrada a decisão de automatizar `SKIPPED` para origem comprovadamente
+  ausente, com auditoria e proteção contra falsos positivos; a implementação
+  permanece pendente;
+- informado pelo operador que URLs inexistentes redirecionam para a página
+  inicial sem erro HTTP; a cadeia específica ainda precisa ser capturada.
+
 ## 2026-11-09
 
 ### Reabertura genérica de lote

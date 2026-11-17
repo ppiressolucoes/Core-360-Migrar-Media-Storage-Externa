@@ -115,15 +115,34 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   diagnóstico e encaminhar itens inválidos para fila residual sem parar os
   demais uploads da página.
 
+### Tratar automaticamente origem comprovadamente ausente
+
+- Na página 166, a origem da migration 964 foi verificada como ausente; o
+  operador autorizou `SKIPPED` para essa classe de falha. O checkpoint
+  avançou após a exceção, mas a regra automática ainda não existe.
+- O operador informou que URLs inexistentes são redirecionadas para a página
+  inicial do site, sem erro HTTP. Capturar a cadeia de redirecionamentos, URL
+  efetiva e resposta para identificar esse comportamento de forma confiável;
+  a cadeia e os códigos HTTP do caso 964 ainda não foram apresentados.
+  HTML, MIME divergente, formatos não suportados, erros 429/5xx e falhas de
+  rede não comprovam ausência e devem permanecer pendentes para diagnóstico.
+- Para ausência comprovada, registrar motivo e contexto de auditoria em
+  `SKIPPED` com atualização protegida por identidade, estado e ausência de
+  storage ou mídia virtual. Preservar idempotência, não excluir a mídia e
+  confirmar o fechamento normal. Cobrir concorrência, erro do banco, lotes
+  mistos e lotes sem itens válidos antes de implantar.
+- A autorização específica para origem comprovadamente ausente não substitui
+  a decisão para outras exceções administrativas ou para falhas de auditoria.
+
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 
 - Criar um fluxo acionado manualmente para classificar cada candidato da página
   atual, ler o checkpoint e o estado canônico das migrations, e indicar a causa
   de `AGUARDANDO` sem reserva.
 - Retomar pelo Sub 02 os itens com mídia virtual quando os sinais de associação
-  e auditoria puderem ser confirmados. Exigir uma decisão explícita e registrada
-  para qualquer encerramento administrativo `SKIPPED`; nunca automatizar essa
-  exceção a partir de `AGUARDANDO`.
+  e auditoria puderem ser confirmados. Para exceções administrativas distintas
+  de origem comprovadamente ausente, exigir decisão explícita e registrada;
+  nunca inferir `SKIPPED` apenas de `AGUARDANDO`.
 - Usar o fechamento existente da página após a recuperação, com nova leitura
   dos candidatos e sem `UPDATE` direto do checkpoint. Registrar as originais
   não verificadas em uma fila consultável para auditoria posterior.

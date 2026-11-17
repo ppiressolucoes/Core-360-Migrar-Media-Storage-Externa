@@ -1,5 +1,21 @@
 # Estado operacional
 
+## Página 166: checkpoint avançado
+
+Em 2026-11-17, após a falha de download da mídia 13643, a validação
+encaminhou as migrations 965 e 966 ao storage; ambas foram confirmadas
+`MIGRATED`, com mídias virtuais 94758 e 94759. A 967 já estava migrada.
+A origem da 964 foi verificada pelo operador como ausente; foi autorizada
+uma exceção para `SKIPPED`. Após a operação, `SP | Fecha Checkpoint`
+retornou `AVANCADO`, 4/4, página 167, último post 13677, às 15:45:12.
+Não foi fornecida leitura separada do checkpoint ou da 964 após a exceção.
+
+O download da 964 retornou HTML; o operador informou que URLs inexistentes
+são redirecionadas para a página inicial sem erro. A cadeia de redirecionamentos,
+o código HTTP e a resposta completa desse caso não foram fornecidos. A validação foi testada no n8n para os três itens, mas
+automação de `SKIPPED` para origem ausente ainda não foi implantada.
+
+
 ## Página 132: recuperação concluída
 
 O PAI recebeu três candidatos (11358/11382, 11365/11373 e 11380/11400),
