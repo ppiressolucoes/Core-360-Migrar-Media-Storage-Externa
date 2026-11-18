@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-18
+
+### Decisão para downloads rejeitados
+
+- documentada a decisão de registrar rejeições como `SKIPPED`, com motivo e
+  URL, preservando migrations com storage ou mídia virtual; HTTP 522 e outras
+  falhas transitórias permanecem pendentes;
+- documentado o desenho proposto para lotes mistos e sem uploads e os testes
+  locais de JavaScript; a procedure e os nós continuam sem homologação no MySQL
+  ou no fluxo ativo e não foram publicados nem implantados;
+- corrigida a referência histórica ao último avanço conhecido do checkpoint.
+
 ## 2026-11-17
 
 ### Página 166 e tratamento de origem ausente

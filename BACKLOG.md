@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-11-09.
+Atualizado em 2026-11-18.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -115,8 +115,13 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   diagnóstico e encaminhar itens inválidos para fila residual sem parar os
   demais uploads da página.
 
-### Tratar automaticamente origem comprovadamente ausente
+### Registrar downloads rejeitados e preservar falhas transitórias
 
+- **Atualização de escopo:** a decisão operacional de 2026-11-18 autoriza
+  `SKIPPED` para downloads rejeitados pelo validador, com motivo e URL de
+  auditoria; erros transitórios, incluindo HTTP 522, continuam pendentes.
+  Existe uma [proposta para homologação](docs/runbooks/proposta-skipped-download.md),
+  ainda não implantada nem validada no MySQL ou no workflow ativo.
 - Na página 166, a origem da migration 964 foi verificada como ausente; o
   operador autorizou `SKIPPED` para essa classe de falha. O checkpoint
   avançou após a exceção, mas a regra automática ainda não existe.
@@ -124,15 +129,16 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   inicial do site, sem erro HTTP. Capturar a cadeia de redirecionamentos, URL
   efetiva e resposta para identificar esse comportamento de forma confiável;
   a cadeia e os códigos HTTP do caso 964 ainda não foram apresentados.
-  HTML, MIME divergente, formatos não suportados, erros 429/5xx e falhas de
-  rede não comprovam ausência e devem permanecer pendentes para diagnóstico.
-- Para ausência comprovada, registrar motivo e contexto de auditoria em
+  HTML, MIME divergente e formatos não suportados não comprovam ausência,
+  embora possam ser rejeitados pelo validador e registrados conforme a decisão
+  atual. Erros 429/5xx e falhas de rede devem permanecer pendentes.
+- Para rejeições abrangidas pela decisão atual, registrar motivo e contexto de auditoria em
   `SKIPPED` com atualização protegida por identidade, estado e ausência de
   storage ou mídia virtual. Preservar idempotência, não excluir a mídia e
   confirmar o fechamento normal. Cobrir concorrência, erro do banco, lotes
   mistos e lotes sem itens válidos antes de implantar.
-- A autorização específica para origem comprovadamente ausente não substitui
-  a decisão para outras exceções administrativas ou para falhas de auditoria.
+- Esta decisão não autoriza alterar migrations com storage ou mídia virtual,
+  nem resolve outras exceções administrativas ou falhas de auditoria.
 
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 

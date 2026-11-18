@@ -1,5 +1,19 @@
 # Estado operacional
 
+## Tratamento de downloads rejeitados — 2026-11-18
+
+O operador informou que o PAI ativo já contém `Valida Download Featured` e
+`IF | Itens Validados`. O export versionado não contém esses nós e não foi
+possível conferir seu contrato. A decisão é registrar rejeitados como `SKIPPED`,
+com motivo e URL para auditoria, preservando migrations com storage ou mídia
+virtual; válidos continuam para upload. HTTP 522 é transitório e deve permanecer
+pendente. O fechamento deve ocorrer normalmente, inclusive sem itens válidos.
+
+O desenho e os testes locais limitados estão em
+[proposta de tratamento](runbooks/proposta-skipped-download.md). A automação
+não foi homologada nem implantada; o estado ativo do banco e do n8n precisa
+ser confirmado antes de qualquer aplicação.
+
 ## Página 166: checkpoint avançado
 
 Em 2026-11-17, após a falha de download da mídia 13643, a validação
@@ -33,8 +47,8 @@ para 798 e 799. A leitura final confirmou 798 `MIGRATED` (mídia virtual
 removido.
 
 `SP | Fecha Checkpoint` retornou `AVANCADO`, 3/3 resolvidos, página 133,
-último post 11402, `updated_at=2026-11-09 14:55:25`. Essa é a evidência mais
-recente de avanço; não foi enviada leitura SQL separada do checkpoint. A
+último post 11402, `updated_at=2026-11-09 14:55:25`. Essa é a evidência de
+avanço dessa página; não foi enviada leitura SQL separada do checkpoint. A
 correção permanente da validação da URL e do conteúdo baixado e a auditoria
 da mídia 11400 permanecem no backlog. Consultar
 [retomada da página 132](runbooks/pagina-132-retomada-sub01.md).

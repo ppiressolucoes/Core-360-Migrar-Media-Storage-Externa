@@ -51,9 +51,11 @@ evidências datados ficam em `docs/planejamento/`; alterações efetivas entram 
 ## Estado operacional
 
 Consulte [STATUS.md](docs/STATUS.md) antes de executar ou retomar um lote. O
+tratamento proposto para downloads rejeitados e suas pendências de homologação
+está em [proposta de SKIPPED](docs/runbooks/proposta-skipped-download.md). O
 incidente e a recuperação da página 79 estão documentados em
 [pagina-79-storage-e-exclusao.md](docs/incidentes/2026-10-20-pagina-79-storage-e-exclusao.md).
-O relato ainda em apuração da página 87 está em
+O histórico da recuperação da página 87 está em
 [pagina-87-sem-reserva.md](docs/runbooks/pagina-87-sem-reserva.md).
 
 ## Sincronização dos exports
