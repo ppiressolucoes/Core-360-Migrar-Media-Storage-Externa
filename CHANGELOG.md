@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-20
+
+### Página 183 e preparação do tratamento de rejeições
+
+- registrada a reabertura e posterior exceção da migration 1046, sem storage
+  ou mídia virtual, e o fechamento `AVANCADO` da página 183 para a 184;
+- recuperados rascunhos de procedure e Code nodes para tratar lotes de
+  downloads rejeitados, com testes locais de JavaScript; não implantados;
+- acrescentada a exigência de confirmar a rejeição na origem, pois HTTP 200
+  do proxy isoladamente não descarta que ele tenha mascarado um erro transitório.
+
 ## 2026-11-18
 
 ### Decisão para downloads rejeitados

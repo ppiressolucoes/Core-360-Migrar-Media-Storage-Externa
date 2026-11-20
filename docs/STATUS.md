@@ -1,10 +1,33 @@
 # Estado operacional
 
+## Página 183: desbloqueada em 2026-11-20
+
+O fechamento retornou inicialmente `AGUARDANDO`, 3/4, na página 183. As
+migrations 1043–1045 estavam `MIGRATED` e os candidatos apontavam para suas
+mídias virtuais 95635–95637. A 1046 (post 14835, mídia 14836) estava em
+`PROCESSING`, sem storage ou mídia virtual. A SP de reabertura retornou
+`REABERTO` para a 1046; após nova reserva, a validação de download encaminhou
+o item ao ramo `false`, sem continuação no fluxo.
+
+O operador informou que a imagem de origem não existia. Uma consulta posterior
+à URL original retornou redirecionamento para a página inicial com HTTP 200 e
+HTML; o proxy também retornou HTTP 200 e HTML. Essas consultas não registram o
+status HTTP da execução original no n8n. O operador marcou a 1046 `SKIPPED`
+às 16:10:21, com motivo `ORIGEM_SEM_IMAGEM`, URL e auditoria pendente. Em
+seguida, a SP de fechamento retornou `AVANCADO`, 4/4, página 184, último post
+14835, às 16:11:50. Não foi fornecida leitura separada do checkpoint.
+
+Esta ocorrência é um ponto de evolução: o ramo de rejeitados deve registrar
+itens automaticamente sem interromper os válidos, mantendo falhas transitórias
+pendentes. A automação está em preparação para homologação; veja a
+[proposta de tratamento](runbooks/proposta-skipped-download.md).
+
 ## Tratamento de downloads rejeitados — 2026-11-18
 
-O operador informou que o PAI ativo já contém `Valida Download Featured` e
-`IF | Itens Validados`. O export versionado não contém esses nós e não foi
-possível conferir seu contrato. A decisão é registrar rejeitados como `SKIPPED`,
+O export do PAI recebido em 2026-11-18 contém `Valida Download Featured` e
+`IF | Itens Validados`; o snapshot oficial anterior não contém esses nós.
+O validador usa `download_valido` e `download_erro`, mas o download exportado
+não fornece explicitamente o status HTTP. A decisão é registrar rejeitados como `SKIPPED`,
 com motivo e URL para auditoria, preservando migrations com storage ou mídia
 virtual; válidos continuam para upload. HTTP 522 é transitório e deve permanecer
 pendente. O fechamento deve ocorrer normalmente, inclusive sem itens válidos.

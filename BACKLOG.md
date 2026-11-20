@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-11-18.
+Atualizado em 2026-11-20.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -117,6 +117,11 @@ Sequência proposta para a próxima evolução e evidências da revisão de
 
 ### Registrar downloads rejeitados e preservar falhas transitórias
 
+- **Página 183:** a migration 1046 ficou bloqueada no ramo sem continuação do
+  IF após receber HTML; foi registrada como `SKIPPED` pelo operador e o
+  checkpoint avançou para 184 em 2026-11-20. A ocorrência reforça a prioridade
+  de automatizar o tratamento para falhas recorrentes. Ver [estado
+  operacional](docs/STATUS.md#página-183-desbloqueada-em-2026-11-20).
 - **Atualização de escopo:** a decisão operacional de 2026-11-18 autoriza
   `SKIPPED` para downloads rejeitados pelo validador, com motivo e URL de
   auditoria; erros transitórios, incluindo HTTP 522, continuam pendentes.
