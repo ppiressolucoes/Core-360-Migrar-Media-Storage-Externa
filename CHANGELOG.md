@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-11-25
+
+### Desbloqueio informado da página 193 e procedimento reutilizável
+
+- registrado o lote informado como desbloqueado após `AGUARDANDO` (2/5) na
+  página 193: migrations 1100–1102 estavam em `PROCESSING` com storage R2 e
+  mídias virtuais; a saída pós-intervenção e o fechamento final não foram
+  compartilhados;
+- documentado runbook de triagem por estado, recuperação e fechamento normal do
+  checkpoint, sem criar procedure por processamento;
+- incluído modelo revisável de atualização única com `JSON_TABLE` para uma
+  exceção administrativa explicitamente autorizada; preserva os campos de
+  storage/mídia virtual e registra motivo, URL e auditoria pendente;
+- reiterado que HTTP 522, 429, 5xx, timeout e falhas de rede são transitórios e
+  não podem ser classificados como `SKIPPED`;
+- mantida a auditoria das mídias originais 15538, 15583 e 15636 como pendente
+  até evidência de conclusão.
+
 ## 2026-11-20
 
 ### Página 183 e preparação do tratamento de rejeições

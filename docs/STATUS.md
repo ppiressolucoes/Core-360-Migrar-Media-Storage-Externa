@@ -1,5 +1,30 @@
 # Estado operacional
 
+## Página 193: desbloqueio informado em 2026-11-25
+
+O fechamento recebido antes da intervenção retornou `AGUARDANDO`, cinco
+candidatos e dois resolvidos; a página permaneceu em 193 com último post 15560.
+Os candidatos eram 15532/96250, 15574/96251, 15590/96252, 15631/96253 e
+15652/96254. As migrations 1100, 1101 e 1102 (posts 15532, 15574 e 15590;
+mídias originais 15538, 15583 e 15636) estavam em `PROCESSING`, com storage
+Cloudflare R2 e mídias virtuais 96250–96252. Os outros dois candidatos estavam
+resolvidos.
+
+Em 2026-11-25, o operador informou que o lote foi desbloqueado por intervenção
+no banco. Não foram enviados o SQL aplicado, a leitura posterior das migrations,
+a contagem de linhas alteradas nem o resultado final de `SP | Fecha Checkpoint`.
+Assim, não se registra aqui status finais nem avanço da página. A auditoria das
+mídias originais 15538, 15583 e 15636 permanece pendente até confirmação.
+
+A recorrência em páginas 87, 98 e 193 motivou um procedimento reutilizável para
+lotes bloqueados, sem procedure ou inserts por ocorrência. O runbook separa
+`PROCESSING` sem storage/mídia virtual de registros que já têm storage ou
+mídia virtual, documenta uma atualização manual por `JSON_TABLE` somente para
+exceção administrativa autorizada, preserva campos de storage e fecha pelo
+procedimento normal do checkpoint. HTTP 522, 429, 5xx, timeouts e falhas de
+rede permanecem transitórios e não podem virar `SKIPPED`. Consulte o
+[runbook de desbloqueio do lote PAI](runbooks/desbloqueio-lote-pai.md).
+
 ## Página 183: desbloqueada em 2026-11-20
 
 O fechamento retornou inicialmente `AGUARDANDO`, 3/4, na página 183. As

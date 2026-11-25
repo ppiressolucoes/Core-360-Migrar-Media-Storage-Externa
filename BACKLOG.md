@@ -1,6 +1,6 @@
 # Backlog
 
-Atualizado em 2026-11-20.
+Atualizado em 2026-11-25.
 
 Sequência proposta para a próxima evolução e evidências da revisão de
 2026-10-23: [plano de execução](docs/planejamento/2026-10-23-evolucao-core.md).
@@ -142,10 +142,18 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   storage ou mídia virtual. Preservar idempotência, não excluir a mídia e
   confirmar o fechamento normal. Cobrir concorrência, erro do banco, lotes
   mistos e lotes sem itens válidos antes de implantar.
-- Esta decisão não autoriza alterar migrations com storage ou mídia virtual,
-  nem resolve outras exceções administrativas ou falhas de auditoria.
+- A automação de rejeições não autoriza alterar migrations com storage ou mídia
+  virtual. Exceções administrativas para lotes bloqueados têm procedimento
+  separado, exigem autorização, preservam storage e mídia virtual e deixam a
+  auditoria residual explícita; ver [runbook de desbloqueio](docs/runbooks/desbloqueio-lote-pai.md).
 
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
+
+- O runbook reutilizável cobre a triagem por estado e a atualização manual
+  única via `JSON_TABLE`, sem procedure ou inserts por ocorrência. A página 193
+  foi informada como desbloqueada em 2026-11-25; a saída final do checkpoint e
+  os status pós-intervenção não foram compartilhados. Auditoria das originais
+  15538, 15583 e 15636 segue pendente.
 
 - Criar um fluxo acionado manualmente para classificar cada candidato da página
   atual, ler o checkpoint e o estado canônico das migrations, e indicar a causa
