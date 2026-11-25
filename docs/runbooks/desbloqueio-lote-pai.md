@@ -4,6 +4,27 @@ Use este procedimento quando o PAI permanecer em `AGUARDANDO` e migrations
 continuarem em `PROCESSING`. Ele orienta diagnóstico e recuperação por estado;
 não atualiza o checkpoint diretamente e não cria uma procedure por lote.
 
+## Evolução aprovada: exceção automática para interrupção sem histórico
+
+Em 2026-11-25 foi aprovada a evolução do PAI para a classe observada na
+página 194: execução interrompida, migration ainda em `PROCESSING`, storage
+canônico e mídia virtual já persistidos, e histórico de erro indisponível para
+retomada segura. Nessa condição específica, o fluxo deverá registrar
+`SKIPPED`, preservar storage e mídia virtual, guardar motivo e IDs para
+auditoria residual, continuar os demais itens e fechar o checkpoint normalmente.
+
+Essa regra ainda está pendente de implementação e homologação. Não aplique a
+qualquer linha `PROCESSING` com storage: se for possível retomar e concluir o
+Sub 02, siga o fluxo normal. Confirme que a execução não está ativa, que
+identidade, mídia virtual e storage canônico correspondem e que não há
+divergência. Se a URL original não puder ser recuperada, registre
+`url_original=NAO_RECUPERADA` explicitamente e mantenha a auditoria pendente.
+HTTP 522, 429, 5xx, timeout e falhas de rede permanecem transitórios e nunca
+são elegíveis para `SKIPPED`.
+
+Até que a automação seja implantada, siga a seção abaixo de exceção
+administrativa manual e registre o resultado de cada etapa.
+
 ## 1. Registrar o snapshot antes de intervir
 
 Colete e guarde, para a mesma página:

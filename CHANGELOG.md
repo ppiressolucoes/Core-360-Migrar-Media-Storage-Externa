@@ -2,6 +2,22 @@
 
 ## 2026-11-25
 
+### Página 194 liberada e evolução aprovada
+
+- o checkpoint da página 194 ficou em `AGUARDANDO`, 2/5; migrations 1106–1108
+  (originais 15616, 15676 e 15683) estavam em `PROCESSING` com storage e mídia
+  virtual, enquanto 1109–1110 já estavam `MIGRATED`;
+- após intervenção administrativa para `SKIPPED`, o operador informou que o
+  lote foi liberado e avançou. A leitura pós-intervenção, a contagem de linhas
+  alteradas, a página seguinte e o horário não foram compartilhados; a auditoria
+  das três originais continua pendente até confirmação;
+- aprovada a evolução do PAI para reconhecer essa classe de interrupção sem
+  histórico de erro recuperável após persistência de storage e marcar o item
+  `SKIPPED` com auditoria residual, preservando storage/mídia virtual e
+  permitindo fechar o lote; implementação e homologação ainda pendentes;
+- a regra fica restrita a esse estado confirmado: HTTP 522, 429, 5xx, timeout e
+  falhas de rede continuam transitórios e não podem ser marcados `SKIPPED`.
+
 ### Desbloqueio informado da página 193 e procedimento reutilizável
 
 - registrado o lote informado como desbloqueado após `AGUARDANDO` (2/5) na

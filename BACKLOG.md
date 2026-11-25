@@ -147,13 +147,37 @@ Sequência proposta para a próxima evolução e evidências da revisão de
   separado, exigem autorização, preservam storage e mídia virtual e deixam a
   auditoria residual explícita; ver [runbook de desbloqueio](docs/runbooks/desbloqueio-lote-pai.md).
 
+### Marcar automaticamente interrupções sem histórico após persistir storage
+
+- **Decisão operacional de 2026-11-25:** evoluir o próprio PAI para não bloquear
+  a página quando uma execução interrompida deixa a migration em
+  `PROCESSING`, embora storage canônico e mídia virtual já estejam gravados, e
+  não há histórico de erro recuperável para retomar a etapa final. Na página
+  194, isso ocorreu com as migrations 1106–1108; o operador informou que o lote
+  foi liberado e avançou após intervenção manual.
+- **Comportamento desejado:** classificar essa condição como exceção
+  administrativa automatizada e registrar `SKIPPED` com motivo, ID da mídia
+  original, storage preservado e auditoria pendente; incluir a URL original
+  quando recuperável e usar um marcador explícito quando não estiver disponível.
+  Os itens válidos continuam no fluxo e o checkpoint fecha normalmente, inclusive
+  se todos os itens da execução forem desviados.
+- **Guardas:** verificar identidade da migration, associação virtual e storage
+  canônico; não repetir upload nem sobrescrever esses dados. Não aplicar a regra
+  a qualquer `PROCESSING` com storage, a uma execução ainda ativa, divergência
+  de identidade, ou item que possa ser retomado normalmente pelo Sub 02.
+  HTTP 522, 429, 5xx, timeouts e falhas de rede são transitórios e permanecem
+  pendentes/repetíveis; nunca devem virar `SKIPPED`.
+- **Estado:** requisito aprovado para implementação e homologação; ainda não
+  está presente no PAI oficial. Preservar a atualização protegida em lote e
+  evitar procedures ou inserts específicos por página. Ver [runbook de
+  desbloqueio](docs/runbooks/desbloqueio-lote-pai.md) e [estado operacional](docs/STATUS.md#página-194-lote-liberado-e-avançado-em-2026-11-25).
+
 ### Fluxo dedicado de diagnóstico e recuperação de lote bloqueado
 
 - O runbook reutilizável cobre a triagem por estado e a atualização manual
-  única via `JSON_TABLE`, sem procedure ou inserts por ocorrência. A página 193
-  foi informada como desbloqueada em 2026-11-25; a saída final do checkpoint e
-  os status pós-intervenção não foram compartilhados. Auditoria das originais
-  15538, 15583 e 15636 segue pendente.
+  única via `JSON_TABLE`, sem procedure ou inserts por ocorrência. A automação
+  da exceção específica aprovada para interrupções após persistência do storage
+  continua pendente de implementação e homologação.
 
 - Criar um fluxo acionado manualmente para classificar cada candidato da página
   atual, ler o checkpoint e o estado canônico das migrations, e indicar a causa

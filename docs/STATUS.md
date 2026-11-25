@@ -1,5 +1,30 @@
 # Estado operacional
 
+## Página 194: lote liberado e avançado em 2026-11-25
+
+O fechamento recebido mostrou `AGUARDANDO`, 2/5 resolvidos, página 194,
+último post 15652. Os cinco candidatos eram 15605/96544, 15673/96546,
+15681/96547, 15667/96553 e 15642/96554. As migrations 1106 (original 15616),
+1107 (original 15676) e 1108 (original 15683) estavam em `PROCESSING`, com
+storage e mídia virtual registrados; 1109 e 1110 estavam `MIGRATED`.
+
+Após a intervenção administrativa para `SKIPPED`, o operador informou que o
+lote foi liberado e avançou. Não foi enviada a leitura posterior das migrations,
+a contagem de linhas alteradas ou o resultado detalhado de fechamento; portanto,
+o número da página seguinte e o horário não são registrados. A auditoria das
+originais 15616, 15676 e 15683 permanece pendente até confirmação.
+
+A decisão para evolução é fazer o próprio PAI reconhecer essa classe específica
+de interrupção sem histórico de erro recuperável após storage/mídia virtual já
+persistidos e registrar `SKIPPED`, preservando esses campos e incluindo
+identificação do motivo e auditoria residual. A regra deve deixar válidos
+prosseguirem e fechar normalmente o checkpoint. Ainda requer implementação e
+homologação no fluxo ativo. Não se deve generalizar para qualquer migration em
+`PROCESSING` com storage: falhas reprocessáveis devem retomar pelo Sub 02, e
+HTTP 522, 429, 5xx, timeout e falhas de rede permanecem transitórios. Ver o
+[requisito no backlog](../BACKLOG.md#marcar-automaticamente-interrupções-sem-histórico-após-persistir-storage)
+e o [runbook de desbloqueio](runbooks/desbloqueio-lote-pai.md).
+
 ## Página 193: desbloqueio informado em 2026-11-25
 
 O fechamento recebido antes da intervenção retornou `AGUARDANDO`, cinco
